@@ -7,64 +7,103 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 :root{
-  --og:#E8511A;--og-l:#FF6B35;--og-p:#FFF0EA;
-  --dk:#1E1E1E;--dk2:#2D2D2D;--dk3:#3A3A3A;
+  --og:#E8511A;--og-l:#FF6B35;--og-p:#FFF0EA;--og-d:rgba(232,81,26,.15);
+  --dk:#1E1E1E;--dk2:#2D2D2D;--dk3:#3A3A3A;--dk4:#444;
   --g1:#F5F5F5;--g2:#EBEBEB;--g3:#C8C8C8;--g4:#888;--g5:#555;
-  --wh:#FFFFFF;--bl:#1A5FA8;--gn:#2EA86B;--am:#D4830A;
+  --wh:#FFFFFF;--bl:#1A5FA8;--gn:#2EA86B;--am:#D4830A;--rd:#D43A3A;
   --sw:220px;--hh:60px;--rad:10px;--rads:6px;
   font-family:'Segoe UI',system-ui,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#F0F2F5;color:var(--dk);min-height:100vh}
-#loading{position:fixed;inset:0;background:var(--dk2);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:18px}
-#loading img{width:200px;filter:brightness(0) invert(1);opacity:.95}
+
+/* ── MODAL BASE ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal-box{background:var(--wh);border-radius:14px;padding:36px 40px;width:380px;box-shadow:0 24px 60px rgba(0,0,0,.25);position:relative}
+.modal-logo{display:block;margin:0 auto 20px;height:38px;object-fit:contain}
+.modal-title{font-size:17px;font-weight:700;color:var(--dk);text-align:center;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--g4);text-align:center;margin-bottom:24px}
+.field-lbl{font-size:11px;font-weight:600;color:var(--g5);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.field-wrap{position:relative;margin-bottom:16px}
+.field-inp{width:100%;height:40px;padding:0 38px 0 12px;border:1.5px solid var(--g2);border-radius:var(--rads);font-size:14px;color:var(--dk);background:var(--g1);outline:none;transition:border .15s}
+.field-inp:focus{border-color:var(--og);background:var(--wh)}
+.field-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:16px;opacity:.5;user-select:none}
+.field-eye:hover{opacity:.9}
+.field-err{font-size:11px;color:var(--rd);margin-top:-10px;margin-bottom:10px;display:none}
+.btn-full{width:100%;height:42px;border:none;border-radius:var(--rads);background:var(--og);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;margin-top:4px}
+.btn-full:hover{background:var(--og-l)}
+.modal-footer{text-align:center;font-size:11px;color:var(--g4);margin-top:16px}
+.modal-close{position:absolute;top:14px;right:16px;font-size:20px;cursor:pointer;color:var(--g4);line-height:1}
+.modal-close:hover{color:var(--dk)}
+.shake{animation:shake .35s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+/* ── LOADING ── */
+#loading{position:fixed;inset:0;background:var(--dk2);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:900;gap:18px}
+#loading img{height:42px;object-fit:contain;opacity:.95;filter:brightness(0) invert(1)}
 .spin{width:34px;height:34px;border:3px solid rgba(232,81,26,.2);border-top-color:var(--og);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.load-txt{color:var(--g3);font-size:13px;letter-spacing:.02em}
+.load-txt{color:var(--g3);font-size:13px}
 .load-err{color:#ff8080;font-size:12px;text-align:center;max-width:340px;line-height:1.6;display:none;padding:0 20px}
 .load-err b{color:#ffaa80}
-.btn-retry{margin-top:4px;padding:8px 22px;background:var(--og);color:#fff;border:none;border-radius:var(--rads);cursor:pointer;font-size:13px;display:none;font-weight:500}
+.btn-retry{padding:8px 22px;background:var(--og);color:#fff;border:none;border-radius:var(--rads);cursor:pointer;font-size:13px;display:none;font-weight:500}
 .btn-retry:hover{background:var(--og-l)}
+
+/* ── SIDEBAR ── */
 #sb{position:fixed;top:0;left:0;width:var(--sw);height:100vh;background:var(--dk2);display:flex;flex-direction:column;z-index:100;border-right:1px solid var(--dk3)}
 .sb-logo{padding:16px 20px 12px;border-bottom:1px solid var(--dk3)}
-.sb-logo img{width:140px;filter:brightness(0) invert(1)}
+.sb-logo img{height:32px;object-fit:contain;filter:brightness(0) invert(1)}
 .sb-date{padding:8px 20px 6px;font-size:11px;color:var(--g3);border-bottom:1px solid var(--dk3);line-height:1.7}
 .sb-date b{color:var(--og)}
 .upd{font-size:10px;color:var(--g4);display:flex;align-items:center;gap:5px;margin-top:2px}
-.dot-live{width:6px;height:6px;border-radius:50%;background:#2EA86B;flex-shrink:0;animation:pulse 2s infinite}
+.dot-live{width:6px;height:6px;border-radius:50%;background:var(--gn);flex-shrink:0;animation:pulse 2s infinite}
+.dot-err{background:var(--rd)!important;animation:none!important}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.sb-nav{padding:10px 0;flex:1}
+.sb-nav{padding:10px 0;flex:1;overflow-y:auto}
 .sbs{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--g4);padding:12px 20px 5px}
 .ni{display:flex;align-items:center;gap:9px;padding:9px 20px;font-size:13px;color:var(--g3);cursor:pointer;transition:all .15s;border-left:3px solid transparent;user-select:none}
 .ni:hover{background:var(--dk3);color:var(--wh)}
-.ni.on{background:rgba(232,81,26,.15);color:var(--og);border-left-color:var(--og);font-weight:500}
+.ni.on{background:var(--og-d);color:var(--og);border-left-color:var(--og);font-weight:500}
 .sb-foot{padding:12px 20px;border-top:1px solid var(--dk3);font-size:11px;color:var(--g4);line-height:1.8}
 .sb-foot b{color:var(--og)}
 .author{margin-top:7px;padding-top:7px;border-top:1px solid var(--dk3);font-size:10px;color:var(--g4);line-height:1.6}
 .author span{color:#FF9466;font-weight:500}
+.sb-gear{display:flex;align-items:center;gap:7px;padding:8px 20px;font-size:12px;color:var(--g4);cursor:pointer;transition:all .15s;border-top:1px solid var(--dk3);margin-top:auto}
+.sb-gear:hover{color:var(--og)}
+
+/* ── TOPBAR ── */
 #main{margin-left:var(--sw);display:flex;flex-direction:column;min-height:100vh}
 #topbar{position:sticky;top:0;z-index:50;background:var(--wh);border-bottom:1px solid var(--g2);height:var(--hh);display:flex;align-items:center;padding:0 24px;gap:14px;justify-content:space-between}
 .tb-info .ttl{font-size:15px;font-weight:600;color:var(--dk)}
 .tb-info .sub{font-size:11px;color:var(--g4);margin-top:1px}
 .frow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-select.fs{height:32px;padding:0 8px;border:1px solid var(--g2);border-radius:var(--rads);font-size:12px;background:var(--g1);cursor:pointer;outline:none;min-width:105px;color:var(--dk)}
+select.fs{height:32px;padding:0 8px;border:1.5px solid var(--g2);border-radius:var(--rads);font-size:12px;background:var(--g1);cursor:pointer;outline:none;min-width:100px;color:var(--dk);transition:border .15s}
 select.fs:focus{border-color:var(--og)}
-.btn-r{height:32px;padding:0 12px;border-radius:var(--rads);border:none;background:var(--og);color:#fff;font-size:12px;font-weight:500;cursor:pointer}
+.btn-r{height:32px;padding:0 12px;border-radius:var(--rads);border:none;background:var(--og);color:#fff;font-size:12px;font-weight:500;cursor:pointer;transition:background .15s}
 .btn-r:hover{background:var(--og-l)}
-.btn-sync{height:32px;padding:0 12px;border-radius:var(--rads);border:1px solid var(--g2);background:var(--wh);color:var(--g5);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s}
+.btn-sync{height:32px;padding:0 12px;border-radius:var(--rads);border:1.5px solid var(--g2);background:var(--wh);color:var(--g5);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;font-weight:500}
 .btn-sync:hover{border-color:var(--og);color:var(--og)}
-.sync-ico{display:inline-block;transition:transform .4s}
+.sync-ico{display:inline-block}
 .syncing .sync-ico{animation:spin .6s linear infinite}
+.sync-ok{color:var(--gn)!important;border-color:var(--gn)!important}
+.sync-ok .sync-ico{animation:none!important}
+
+/* ── PAGES ── */
 .pg{display:none;padding:22px 24px}
 .pg.on{display:block}
+
+/* ── KPI ── */
 .kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
-.kc{background:var(--wh);border-radius:var(--rad);padding:16px 18px;border:1px solid var(--g2);position:relative;overflow:hidden}
+.kc{background:var(--wh);border-radius:var(--rad);padding:16px 18px;border:1px solid var(--g2);position:relative;overflow:hidden;transition:box-shadow .15s}
+.kc:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}
 .kc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
 .kc.og::before{background:var(--og)}.kc.bl::before{background:var(--bl)}.kc.gn::before{background:var(--gn)}.kc.am::before{background:var(--am)}
-.klbl{font-size:11px;color:var(--g4);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
-.kval{font-size:24px;font-weight:700;color:var(--dk);line-height:1.1}
-.ksub{font-size:11px;color:var(--g4);margin-top:4px}
-.kico{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:30px;opacity:.07}
+.klbl{font-size:10px;color:var(--g4);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.kval{font-size:22px;font-weight:700;color:var(--dk);line-height:1.15;font-variant-numeric:tabular-nums}
+.ksub{font-size:11px;color:var(--g4);margin-top:5px}
+.kico{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.06}
+
+/* ── LAYOUT ── */
 .row2{display:grid;grid-template-columns:3fr 2fr;gap:12px;margin-bottom:18px}
 .row2e{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
 .cc{background:var(--wh);border-radius:var(--rad);border:1px solid var(--g2);padding:18px}
@@ -72,25 +111,33 @@ select.fs:focus{border-color:var(--og)}
 .ctit{font-size:13px;font-weight:600;color:var(--dk);margin-bottom:3px}
 .csub{font-size:11px;color:var(--g4);margin-bottom:12px}
 .cw{position:relative;width:100%}
+
+/* ── PROGRESS ── */
 .prw{display:flex;align-items:center;gap:7px;margin-bottom:9px}
-.prl{font-size:12px;color:var(--dk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prl{font-size:12px;color:var(--dk);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
 .prb{flex:1;height:6px;background:var(--g2);border-radius:3px;overflow:hidden}
-.prf{height:6px;border-radius:3px;transition:width .6s}
-.prv{font-size:11px;color:var(--g5);flex:0 0 68px;text-align:right;font-variant-numeric:tabular-nums}
-.prp{font-size:11px;color:var(--og);flex:0 0 34px;text-align:right;font-weight:600}
+.prf{height:6px;border-radius:3px}
+.prv{font-size:11px;color:var(--g5);flex:0 0 75px;text-align:right;font-variant-numeric:tabular-nums}
+.prp{font-size:11px;color:var(--og);flex:0 0 34px;text-align:right;font-weight:700}
+
+/* ── DONUT CENTER ── */
 .dc{position:relative}
 .dcenter{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
-.dcv{font-size:16px;font-weight:700;color:var(--dk)}
+.dcv{font-size:15px;font-weight:700;color:var(--dk);font-variant-numeric:tabular-nums}
 .dcl{font-size:10px;color:var(--g4);margin-top:1px}
+
+/* ── ALERT ── */
 .alert{display:flex;align-items:flex-start;gap:10px;background:var(--og-p);border:1px solid rgba(232,81,26,.2);border-radius:var(--rad);padding:12px 16px;margin-bottom:18px}
 .alert-t{font-size:13px;color:var(--dk);line-height:1.5}
 .alert-t b{color:var(--og)}
+
+/* ── TABLE ── */
 .tw{overflow:auto;border-radius:var(--rad);border:1px solid var(--g2);background:var(--wh);margin-bottom:18px}
-.th2{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--g2)}
-.tsch{height:31px;padding:0 10px;border:1px solid var(--g2);border-radius:var(--rads);font-size:12px;outline:none;background:var(--g1);width:220px}
+.th2{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--g2);flex-wrap:wrap;gap:8px}
+.tsch{height:31px;padding:0 10px;border:1.5px solid var(--g2);border-radius:var(--rads);font-size:12px;outline:none;background:var(--g1);width:220px;transition:border .15s}
 .tsch:focus{border-color:var(--og)}
 table{width:100%;border-collapse:collapse;min-width:900px;font-size:12px}
-thead th{background:var(--dk2);color:#fff;padding:9px 12px;text-align:left;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;cursor:pointer;user-select:none;white-space:nowrap}
+thead th{background:var(--dk2);color:#fff;padding:9px 12px;text-align:left;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0;cursor:pointer;user-select:none;white-space:nowrap;transition:background .1s}
 thead th:hover{background:var(--dk3)}
 thead th.sa::after{content:' ▲';font-size:9px;opacity:.7}
 thead th.sd::after{content:' ▼';font-size:9px;opacity:.7}
@@ -106,23 +153,118 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 .b-ot{background:#EBEBEB;color:#555}
 .tfoot{padding:9px 18px;font-size:11px;color:var(--g4);border-top:1px solid var(--g2);display:flex;justify-content:space-between;align-items:center}
 .tfoot b{color:var(--og)}
+
+/* ── FILTRO DATA ── */
+.date-filters{display:flex;gap:8px;margin-bottom:18px;align-items:center;flex-wrap:wrap}
+.date-filters label{font-size:11px;color:var(--g4);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.df-chip{padding:5px 12px;border-radius:20px;border:1.5px solid var(--g2);background:var(--wh);font-size:11px;cursor:pointer;color:var(--g5);transition:all .15s;font-weight:500}
+.df-chip:hover{border-color:var(--og);color:var(--og)}
+.df-chip.on{border-color:var(--og);background:var(--og);color:#fff}
+select.df-sel{height:30px;padding:0 8px;border:1.5px solid var(--g2);border-radius:20px;font-size:11px;background:var(--wh);cursor:pointer;outline:none;color:var(--g5);transition:all .15s}
+select.df-sel:focus,.df-sel.on{border-color:var(--og);color:var(--og)}
+
+/* ── CONFIG MODAL ── */
+.cfg-section{margin-bottom:20px}
+.cfg-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--og);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.cfg-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--g2)}
+.cfg-row:last-child{border-bottom:none}
+.cfg-lbl{font-size:13px;color:var(--dk)}
+.cfg-sub{font-size:11px;color:var(--g4);margin-top:1px}
+.cfg-inp{height:34px;padding:0 10px;border:1.5px solid var(--g2);border-radius:var(--rads);font-size:13px;width:160px;outline:none;transition:border .15s}
+.cfg-inp:focus{border-color:var(--og)}
+.cfg-btn{height:34px;padding:0 14px;border-radius:var(--rads);border:none;background:var(--og);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap}
+.cfg-btn:hover{background:var(--og-l)}
+.cfg-ok{font-size:11px;color:var(--gn);display:none;margin-top:6px;font-weight:500}
+.tag-new{display:inline-block;font-size:9px;background:var(--gn);color:#fff;padding:1px 5px;border-radius:4px;font-weight:700;margin-left:4px;vertical-align:middle}
 </style>
 </head>
 <body>
 
-<div id="loading">
-  <img src="https://murilo-energia.github.io/painel-financiamentos/logo-grupo-energia.png" alt="Grupo Energia">
+<!-- ═══ TELA DE LOGIN ═══ -->
+<div class="modal-bg" id="login-screen">
+  <div class="modal-box">
+    <img class="modal-logo" src="https://murilo-energia.github.io/painel-financiamentos/logo-grupo-energia.png" alt="Grupo Energia" onerror="this.style.display='none'">
+    <div class="modal-title">Painel de Financiamentos</div>
+    <div class="modal-sub">Acesso restrito — insira a senha para continuar</div>
+    <div class="field-lbl">Senha de acesso</div>
+    <div class="field-wrap">
+      <input class="field-inp" type="password" id="login-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      <span class="field-eye" onclick="toggleEye('login-pwd',this)">👁</span>
+    </div>
+    <div class="field-err" id="login-err">Senha incorreta. Tente novamente.</div>
+    <button class="btn-full" onclick="doLogin()">Entrar</button>
+    <div class="modal-footer">Grupo Energia · Uso interno confidencial</div>
+  </div>
+</div>
+
+<!-- ═══ MODAL CONFIG ═══ -->
+<div class="modal-bg" id="cfg-modal" style="display:none">
+  <div class="modal-box" style="width:440px">
+    <span class="modal-close" onclick="closeCfg()">×</span>
+    <div class="modal-title" style="text-align:left;margin-bottom:4px">⚙️ Configurações</div>
+    <div class="modal-sub" style="text-align:left;margin-bottom:20px">Gerencie senhas de acesso ao painel</div>
+
+    <!-- Autenticação admin -->
+    <div id="cfg-auth-wrap">
+      <div class="field-lbl">Senha de administrador</div>
+      <div class="field-wrap">
+        <input class="field-inp" type="password" id="cfg-admin-inp" placeholder="Digite a senha admin" onkeydown="if(event.key==='Enter')verifyCfgAdmin()">
+        <span class="field-eye" onclick="toggleEye('cfg-admin-inp',this)">👁</span>
+      </div>
+      <div class="field-err" id="cfg-admin-err">Senha incorreta.</div>
+      <button class="btn-full" onclick="verifyCfgAdmin()">Acessar configurações</button>
+    </div>
+
+    <!-- Painel de config (após autenticação) -->
+    <div id="cfg-panel" style="display:none">
+      <div class="cfg-section">
+        <div class="cfg-section-title">🔒 Senha de visualização</div>
+        <div class="cfg-row">
+          <div><div class="cfg-lbl">Senha atual do painel</div><div class="cfg-sub">Usada no login de acesso</div></div>
+          <div>
+            <div style="display:flex;gap:6px">
+              <input class="cfg-inp" type="password" id="new-view-pwd" placeholder="Nova senha">
+              <button class="cfg-btn" onclick="saveViewPwd()">Salvar</button>
+            </div>
+            <div class="cfg-ok" id="view-pwd-ok">✓ Senha alterada com sucesso</div>
+          </div>
+        </div>
+      </div>
+      <div class="cfg-section">
+        <div class="cfg-section-title">🛡️ Senha de administrador</div>
+        <div class="cfg-row">
+          <div><div class="cfg-lbl">Alterar senha admin</div><div class="cfg-sub">Usada para acessar estas configurações</div></div>
+          <div>
+            <div style="display:flex;gap:6px">
+              <input class="cfg-inp" type="password" id="new-admin-pwd" placeholder="Nova senha admin">
+              <button class="cfg-btn" onclick="saveAdminPwd()">Salvar</button>
+            </div>
+            <div class="cfg-ok" id="admin-pwd-ok">✓ Senha admin alterada</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--og-p);border-radius:var(--rads);padding:10px 14px;font-size:11px;color:var(--g5);line-height:1.6;margin-top:4px">
+        ⚠️ As senhas são salvas localmente neste navegador. Se outro usuário acessar por outro dispositivo, as senhas padrão serão usadas até que sejam alteradas naquele dispositivo.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LOADING ═══ -->
+<div id="loading" style="display:none">
+  <img src="https://murilo-energia.github.io/painel-financiamentos/logo-grupo-energia.png" alt="Grupo Energia" onerror="this.style.display='none'">
   <div class="spin"></div>
   <div class="load-txt" id="load-txt">Conectando à planilha...</div>
   <div class="load-err" id="load-err"></div>
   <button class="btn-retry" id="btn-retry" onclick="loadData()">↺ Tentar novamente</button>
 </div>
 
+<!-- ═══ APP ═══ -->
 <nav id="sb" style="display:none">
-  <div class="sb-logo"><img src="https://murilo-energia.github.io/painel-financiamentos/logo-grupo-energia.png" alt="Grupo Energia"></div>
+  <div class="sb-logo"><img src="https://murilo-energia.github.io/painel-financiamentos/logo-grupo-energia.png" alt="Grupo Energia" onerror="this.style.display='none'"></div>
   <div class="sb-date">
     📅 Posição: <b id="ref-date">—</b>
-    <div class="upd"><span class="dot-live"></span><span id="upd-time">sincronizando...</span></div>
+    <div class="upd"><span class="dot-live" id="sync-dot"></span><span id="upd-time">sincronizando...</span></div>
   </div>
   <div class="sb-nav">
     <div class="sbs">Painel</div>
@@ -136,6 +278,7 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
     Painel interno <b>Grupo Energia</b><br>Uso confidencial
     <div class="author">✍️ Elaborado por:<br><span>Murilo Henrique Roberto</span></div>
   </div>
+  <div class="sb-gear" onclick="openCfg()">⚙️ Configurações</div>
 </nav>
 
 <div id="main" style="display:none">
@@ -151,11 +294,12 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
       <select class="fs" id="fcc" onchange="applyF()"><option value="">Centro: Todos</option></select>
       <button class="btn-r" onclick="resetF()">↺ Limpar</button>
       <button class="btn-sync" id="btn-sync" onclick="loadData(true)">
-        <span class="sync-ico">🔄</span> Sincronizar
+        <span class="sync-ico">🔄</span>&nbsp;Sincronizar
       </button>
     </div>
   </div>
 
+  <!-- ── VISÃO GERAL ── -->
   <div id="pg-visao" class="pg on">
     <div class="alert"><span style="font-size:20px;flex-shrink:0">⚡</span>
       <span class="alert-t" id="alert-txt">Carregando...</span></div>
@@ -175,6 +319,7 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
     </div>
   </div>
 
+  <!-- ── POR NEGÓCIO ── -->
   <div id="pg-negocio" class="pg">
     <div class="kgrid">
       <div class="kc og"><div class="klbl">💼 Negócio Dominante</div><div class="kval" id="neg-dom">—</div><div class="ksub" id="neg-dom-s">—</div></div>
@@ -189,6 +334,7 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
     <div class="ccf"><div class="ctit">Detalhamento por Negócio</div><div class="csub">Todos os indicadores consolidados</div><div id="tn-det"></div></div>
   </div>
 
+  <!-- ── POR CATEGORIA ── -->
   <div id="pg-categoria" class="pg">
     <div class="kgrid">
       <div class="kc og"><div class="klbl">🏆 Maior Categoria</div><div class="kval" id="cat-top">—</div><div class="ksub" id="cat-top-s">—</div></div>
@@ -202,11 +348,12 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
     </div>
   </div>
 
+  <!-- ── CREDORES ── -->
   <div id="pg-credores" class="pg">
     <div class="kgrid">
       <div class="kc og"><div class="klbl">🏦 Principal Credor</div><div class="kval" id="cred-top">—</div><div class="ksub" id="cred-top-s">—</div></div>
       <div class="kc bl"><div class="klbl">🔢 Total Credores</div><div class="kval" id="cred-ct">—</div><div class="ksub">instituições</div></div>
-      <div class="kc gn"><div class="klbl">📄 Contratos Princ. Credor</div><div class="kval" id="cred-top-n">—</div><div class="ksub" id="cred-top-ns">—</div></div>
+      <div class="kc gn"><div class="klbl">📄 Contratos Princ.</div><div class="kval" id="cred-top-n">—</div><div class="ksub" id="cred-top-ns">—</div></div>
       <div class="kc am"><div class="klbl">⚠️ Concentração</div><div class="kval" id="cred-conc" style="font-size:18px">—</div><div class="ksub" id="cred-conc-s">—</div></div>
     </div>
     <div class="row2e">
@@ -216,6 +363,7 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
     <div class="ccf"><div class="ctit">A Pagar até Dez/2025 por Credor</div><div class="csub">Comprometimento por instituição</div><div class="cw" style="height:190px"><canvas id="c9"></canvas></div></div>
   </div>
 
+  <!-- ── CONTRATOS ── -->
   <div id="pg-contratos" class="pg">
     <div class="tw">
       <div class="th2">
@@ -245,35 +393,118 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 </div>
 
 <script>
+// ═══════════════════════════════════════════════════════
+//  CONFIGURAÇÃO
+// ═══════════════════════════════════════════════════════
 const SHEETS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFoVgG5DfGniY563BHLNvoswx6TNivO_YkozWKoyJSssEvxUrqkHupKQwlcsS7V9K-DAtHJmLSvbvO/pub?gid=0&single=true&output=csv";
+const DEFAULT_VIEW_PWD = "energia2025";   // senha padrão visualização
+const DEFAULT_ADMIN_PWD = "admin@energia"; // senha padrão admin
 
-// Múltiplos proxies CORS com fallback automático
-const PROXIES = [
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&t=${Date.now()}`,
-  url => `https://cors-anywhere.herokuapp.com/${url}`,
-];
+function getViewPwd(){ return localStorage.getItem('ge_view_pwd') || DEFAULT_VIEW_PWD; }
+function getAdminPwd(){ return localStorage.getItem('ge_admin_pwd') || DEFAULT_ADMIN_PWD; }
 
+// ── LOGIN ─────────────────────────────────────────────
+function doLogin(){
+  const v = document.getElementById('login-pwd').value;
+  if(v === getViewPwd()){
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('loading').style.display = 'flex';
+    loadData();
+  } else {
+    const err = document.getElementById('login-err');
+    err.style.display = 'block';
+    const box = document.querySelector('#login-screen .modal-box');
+    box.classList.remove('shake');
+    void box.offsetWidth;
+    box.classList.add('shake');
+    document.getElementById('login-pwd').value = '';
+  }
+}
+document.getElementById('login-pwd').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+// ── OLHO SENHA ────────────────────────────────────────
+function toggleEye(inputId, el){
+  const inp = document.getElementById(inputId);
+  if(inp.type==='password'){ inp.type='text'; el.textContent='🙈'; }
+  else { inp.type='password'; el.textContent='👁'; }
+}
+
+// ── CONFIG MODAL ──────────────────────────────────────
+function openCfg(){
+  document.getElementById('cfg-modal').style.display = 'flex';
+  document.getElementById('cfg-auth-wrap').style.display = 'block';
+  document.getElementById('cfg-panel').style.display = 'none';
+  document.getElementById('cfg-admin-inp').value = '';
+  document.getElementById('cfg-admin-err').style.display = 'none';
+}
+function closeCfg(){ document.getElementById('cfg-modal').style.display = 'none'; }
+
+function verifyCfgAdmin(){
+  const v = document.getElementById('cfg-admin-inp').value;
+  if(v === getAdminPwd()){
+    document.getElementById('cfg-auth-wrap').style.display = 'none';
+    document.getElementById('cfg-panel').style.display = 'block';
+  } else {
+    document.getElementById('cfg-admin-err').style.display = 'block';
+    document.getElementById('cfg-admin-inp').value = '';
+  }
+}
+document.getElementById('cfg-admin-inp').addEventListener('keydown', e=>{ if(e.key==='Enter') verifyCfgAdmin(); });
+
+function saveViewPwd(){
+  const v = document.getElementById('new-view-pwd').value.trim();
+  if(!v){ alert('Digite uma senha válida.'); return; }
+  localStorage.setItem('ge_view_pwd', v);
+  document.getElementById('view-pwd-ok').style.display = 'block';
+  document.getElementById('new-view-pwd').value = '';
+  setTimeout(()=>{ document.getElementById('view-pwd-ok').style.display='none'; }, 3000);
+}
+function saveAdminPwd(){
+  const v = document.getElementById('new-admin-pwd').value.trim();
+  if(!v){ alert('Digite uma senha válida.'); return; }
+  localStorage.setItem('ge_admin_pwd', v);
+  document.getElementById('admin-pwd-ok').style.display = 'block';
+  document.getElementById('new-admin-pwd').value = '';
+  setTimeout(()=>{ document.getElementById('admin-pwd-ok').style.display='none'; }, 3000);
+}
+
+// ═══════════════════════════════════════════════════════
+//  DADOS
+// ═══════════════════════════════════════════════════════
 let RAW=[], filt=[], sk='saldo', sd=-1;
-const fM=v=>v>=1e6?'R$ '+(v/1e6).toFixed(2)+'M':v>=1e3?'R$ '+(v/1e3).toFixed(0)+'K':'R$ '+v.toFixed(0);
-const fBR=(v,d=2)=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+// Formatação de valores — sempre com decimais apresentáveis
+const fBRL = (v, short=false) => {
+  if(short){
+    if(v >= 1e6) return 'R$ ' + (v/1e6).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' M';
+    if(v >= 1e3) return 'R$ ' + (v/1e3).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + ' K';
+    return 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  return 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+};
+const fM = v => fBRL(v, true);   // cards: "R$ 14,68 M"
+const fBR = v => fBRL(v, false); // tabelas: "R$ 1.234,56"
+const fAx = v => {               // eixos de gráfico
+  if(v>=1e6) return 'R$ '+(v/1e6).toFixed(1)+'M';
+  if(v>=1e3) return 'R$ '+(v/1e3).toFixed(0)+'K';
+  return 'R$ '+v.toFixed(0);
+};
+
 const CL=['#E8511A','#1A5FA8','#2EA86B','#D4830A','#9B59B6','#D43A3A','#16A085','#C0621A','#2980B9','#1B7A45','#7B2FBE','#A33A3A','#555'];
 let chs={};
+function dch(id){ if(chs[id]){ chs[id].destroy(); delete chs[id]; } }
 
-function dch(id){if(chs[id]){chs[id].destroy();delete chs[id];}}
 function grp(arr,key){
   return arr.reduce((a,r)=>{
-    const k=r[key];if(!a[k])a[k]={n:0,saldo:0,parcela:0,pagar:0};
-    a[k].n++;a[k].saldo+=r.saldo||0;a[k].parcela+=r.parcela||0;a[k].pagar+=r.pagar2025||0;
+    const k=r[key]; if(!a[k])a[k]={n:0,saldo:0,parcela:0,pagar:0};
+    a[k].n++; a[k].saldo+=r.saldo||0; a[k].parcela+=r.parcela||0; a[k].pagar+=r.pagar2025||0;
     return a;
   },{});
 }
-function sortedKeys(g,by='saldo'){return Object.keys(g).sort((a,b)=>g[b][by]-g[a][by]);}
+function sortedKeys(g,by='saldo'){ return Object.keys(g).sort((a,b)=>g[b][by]-g[a][by]); }
 
 function makeProg(cont,g,tot,wide){
-  const ks=sortedKeys(g);
-  const fl=wide?155:100;
+  const ks=sortedKeys(g); const fl=wide?160:105;
   document.getElementById(cont).innerHTML=ks.map((k,i)=>{
     const p=tot>0?g[k].saldo/tot*100:0;
     const lbl=k.length>22?k.slice(0,21)+'…':k;
@@ -281,31 +512,35 @@ function makeProg(cont,g,tot,wide){
   }).join('');
 }
 
-// ── CSV parser robusto ────────────────────────────────────────────────────────
+// ── PROXIES com cache-busting real ────────────────────
+function buildProxyUrls(baseUrl){
+  const ts = Date.now();
+  const noCache = baseUrl + '&nocache=' + ts;
+  return [
+    `https://corsproxy.io/?${encodeURIComponent(noCache)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(noCache)}`,
+    `https://api.allorigins.win/get?url=${encodeURIComponent(noCache)}`,
+    `https://thingproxy.freeboard.io/fetch/${noCache}`,
+  ];
+}
+
+// ── CSV parser ────────────────────────────────────────
 function parseCSV(text){
-  // Normaliza quebras de linha
   const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n');
   if(lines.length < 2) return [];
 
-  // Parse linha respeitando aspas
   function parseLine(line){
     const cols=[]; let cur='', inQ=false;
     for(let i=0;i<line.length;i++){
       const ch=line[i];
-      if(ch==='"'){
-        if(inQ && line[i+1]==='"'){cur+='"';i++;}
-        else inQ=!inQ;
-      } else if(ch===','&&!inQ){cols.push(cur.trim());cur='';}
+      if(ch==='"'){ if(inQ&&line[i+1]==='"'){cur+='"';i++;} else inQ=!inQ; }
+      else if(ch===','&&!inQ){ cols.push(cur.trim()); cur=''; }
       else cur+=ch;
     }
-    cols.push(cur.trim());
-    return cols;
+    cols.push(cur.trim()); return cols;
   }
 
   const headers=parseLine(lines[0]);
-  console.log('Headers encontrados:', headers);
-
-  // Busca flexível de coluna
   function findCol(names){
     for(const n of names){
       const idx=headers.findIndex(h=>h.replace(/"/g,'').toLowerCase().includes(n.toLowerCase()));
@@ -314,29 +549,19 @@ function parseCSV(text){
     return -1;
   }
 
-  const iCred=findCol(['Credor']);
-  const iDesc=findCol(['Descri','Description']);
-  const iPlaca=findCol(['Placa']);
-  const iCC=findCol(['Centro de Custo','Centro']);
-  const iSaldo=findCol(['Saldo Devedor','Saldo']);
-  const iParcela=findCol(['Ultima Parcela','Último','Parcela']);
-  const iMeses=findCol(['Meses em Aberto','Meses']);
-  const iPagar=findCol(['Pagar em 2025','Pagar','2025']);
-  const iNeg=findCol(['Neg']);
-  const iContrato=findCol(['Contrato']);
-
-  console.log('Índices cols:',{iCred,iDesc,iPlaca,iCC,iSaldo,iParcela,iMeses,iPagar,iNeg});
+  const iCred=findCol(['Credor']), iDesc=findCol(['Descri']),
+        iPlaca=findCol(['Placa']), iCC=findCol(['Centro de Custo','Centro']),
+        iSaldo=findCol(['Saldo Devedor','Saldo']),
+        iParcela=findCol(['Ultima Parcela','Último','Parcela']),
+        iMeses=findCol(['Meses em Aberto','Meses']),
+        iPagar=findCol(['Pagar em 2025','Pagar','2025']),
+        iNeg=findCol(['Neg']), iContrato=findCol(['Contrato']);
 
   function parseNum(v){
     if(!v||v===''||v==='-'||v==='#N/A')return 0;
-    let s=v.replace(/"/g,'').trim();
-    // Remove R$ e espaços
-    s=s.replace(/R\$\s*/g,'').trim();
-    // Formato BRL: 1.234,56
-    if(s.includes(',')&&s.includes('.')){
-      return parseFloat(s.replace(/\./g,'').replace(',','.'));
-    }
-    if(s.includes(','))return parseFloat(s.replace(',','.'));
+    let s=v.replace(/"/g,'').replace(/R\$\s*/g,'').trim();
+    if(s.includes(',')&&s.includes('.')) return parseFloat(s.replace(/\./g,'').replace(',','.'));
+    if(s.includes(',')) return parseFloat(s.replace(',','.'));
     return parseFloat(s)||0;
   }
 
@@ -365,90 +590,90 @@ function parseCSV(text){
       descricao:desc.slice(0,50),
       placa:(cols[iPlaca]||'S/Placa').replace(/"/g,'').trim()||'S/Placa',
       cc:(cols[iCC]||'').replace(/"/g,'').trim(),
-      saldo:saldo,
-      parcela:iParcela>=0?parseNum(cols[iParcela]):0,
+      saldo, parcela:iParcela>=0?parseNum(cols[iParcela]):0,
       meses_aberto:iMeses>=0?parseInt((cols[iMeses]||'0').replace(/"/g,''))||0:0,
       pagar2025:iPagar>=0?parseNum(cols[iPagar]):0,
-      negocio:neg,
-      categoria:categorize(desc)
+      negocio:neg, categoria:categorize(desc)
     });
   }
-  console.log('Linhas parseadas:', rows.length);
   return rows;
 }
 
-// ── Fetch com fallback entre proxies ─────────────────────────────────────────
+// ── FETCH com cache-busting garantido ─────────────────
 async function fetchCSV(){
-  let lastErr='';
-  for(let i=0;i<PROXIES.length;i++){
-    const proxyUrl=PROXIES[i](SHEETS_URL);
-    document.getElementById('load-txt').textContent='Tentando conexão '+(i+1)+'/'+PROXIES.length+'...';
-    console.log('Proxy '+(i+1)+':', proxyUrl);
+  const proxies = buildProxyUrls(SHEETS_URL);
+  let lastErr = '';
+  for(let i=0; i<proxies.length; i++){
+    const url = proxies[i];
+    document.getElementById('load-txt').textContent = 'Buscando dados ('+(i+1)+'/'+proxies.length+')...';
     try{
-      const ctrl=new AbortController();
-      const tid=setTimeout(()=>ctrl.abort(),8000);
-      const res=await fetch(proxyUrl,{signal:ctrl.signal});
+      const ctrl = new AbortController();
+      const tid = setTimeout(()=>ctrl.abort(), 10000);
+      // cache:'no-store' garante que o browser não use cache local
+      const res = await fetch(url, { signal:ctrl.signal, cache:'no-store', headers:{'Cache-Control':'no-cache'} });
       clearTimeout(tid);
-      if(!res.ok)throw new Error('HTTP '+res.status);
-      const text=await res.text();
-      // allorigins encapsula em JSON
-      if(text.startsWith('{')&&text.includes('"contents"')){
-        const j=JSON.parse(text);
-        return j.contents||'';
-      }
-      return text;
-    }catch(e){
-      lastErr=e.message;
-      console.warn('Proxy '+(i+1)+' falhou:',e.message);
-    }
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const text = await res.text();
+      if(text.startsWith('{')&&text.includes('"contents"')){ const j=JSON.parse(text); return j.contents||''; }
+      if(text.length > 100) return text;
+      throw new Error('Resposta vazia');
+    } catch(e){ lastErr=e.message; console.warn('Proxy '+(i+1)+' falhou:',e.message); }
   }
-  throw new Error('Todos os proxies falharam. Último erro: '+lastErr);
+  throw new Error('Todos os proxies falharam: '+lastErr);
 }
 
 async function loadData(manual=false){
-  const syncBtn=document.getElementById('btn-sync');
-  if(syncBtn)syncBtn.classList.add('syncing');
-  document.getElementById('load-txt').textContent='Conectando à planilha...';
-  document.getElementById('load-err').style.display='none';
-  document.getElementById('btn-retry').style.display='none';
+  const btn = document.getElementById('btn-sync');
+  if(btn){ btn.classList.add('syncing'); btn.classList.remove('sync-ok'); }
+  document.getElementById('load-err') && (document.getElementById('load-err').style.display='none');
+  document.getElementById('btn-retry') && (document.getElementById('btn-retry').style.display='none');
+  document.getElementById('sync-dot') && document.getElementById('sync-dot').classList.remove('dot-err');
 
   try{
-    const csv=await fetchCSV();
-    if(!csv||csv.length<100)throw new Error('Resposta vazia recebida');
+    const csv = await fetchCSV();
+    if(!csv||csv.length<100) throw new Error('Resposta vazia');
 
-    RAW=parseCSV(csv);
-    if(RAW.length===0)throw new Error('Nenhum dado válido encontrado. Verifique se a planilha está publicada como CSV.');
+    const newData = parseCSV(csv);
+    if(newData.length===0) throw new Error('Nenhum dado válido. Verifique a publicação da planilha.');
 
-    filt=[...RAW];
+    RAW = newData;
+    filt = [...RAW];
     initFilters();
     initUI();
 
-    const now=new Date();
-    document.getElementById('ref-date').textContent=now.toLocaleDateString('pt-BR',{month:'short',year:'numeric'});
-    document.getElementById('upd-time').textContent='Atualizado '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    const now = new Date();
+    document.getElementById('ref-date').textContent = now.toLocaleDateString('pt-BR',{month:'short',year:'numeric'});
+    document.getElementById('upd-time').textContent = 'Atualizado às '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 
-    document.getElementById('loading').style.display='none';
-    document.getElementById('sb').style.display='flex';
-    document.getElementById('main').style.display='flex';
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('sb').style.display = 'flex';
+    document.getElementById('main').style.display = 'flex';
 
-    const pg=document.querySelector('.ni.on');
-    renderPg(pg?pg.dataset.pg:'visao');
+    if(btn){ btn.classList.remove('syncing'); btn.classList.add('sync-ok'); setTimeout(()=>btn.classList.remove('sync-ok'),2500); }
 
-    if(manual)console.log('Sincronizado com sucesso —',RAW.length,'contratos');
+    const pg = document.querySelector('.ni.on');
+    renderPg(pg ? pg.dataset.pg : 'visao');
+    console.log('✅ Dados carregados:',RAW.length,'contratos');
 
-  }catch(e){
-    console.error('Erro ao carregar dados:',e);
-    document.getElementById('load-txt').textContent='Erro ao carregar dados';
-    document.getElementById('load-err').innerHTML='<b>Não foi possível conectar à planilha.</b><br>'+e.message+'<br><br>Verifique se a planilha está publicada como CSV no Google Sheets.';
-    document.getElementById('load-err').style.display='block';
-    document.getElementById('btn-retry').style.display='block';
-    if(manual)alert('Erro ao sincronizar: '+e.message);
-  }finally{
-    if(syncBtn)syncBtn.classList.remove('syncing');
+  } catch(e){
+    console.error('Erro:', e);
+    if(document.getElementById('loading').style.display!=='none'){
+      document.getElementById('load-txt').textContent = 'Erro ao carregar';
+      document.getElementById('load-err').innerHTML = '<b>Falha na conexão</b><br>'+e.message;
+      document.getElementById('load-err').style.display = 'block';
+      document.getElementById('btn-retry').style.display = 'block';
+    }
+    if(btn) btn.classList.remove('syncing');
+    document.getElementById('sync-dot') && document.getElementById('sync-dot').classList.add('dot-err');
+    document.getElementById('upd-time').textContent = 'Falha na última sync';
+    if(manual) alert('❌ Erro ao sincronizar:\n'+e.message);
   }
 }
 
+// ── UI NAV ────────────────────────────────────────────
+let uiInited = false;
 function initUI(){
+  if(uiInited) return; uiInited=true;
   document.querySelectorAll('.ni').forEach(n=>{
     n.onclick=function(){
       document.querySelectorAll('.ni').forEach(x=>x.classList.remove('on'));
@@ -456,44 +681,40 @@ function initUI(){
       this.classList.add('on');
       const id=this.dataset.pg;
       document.getElementById('pg-'+id).classList.add('on');
-      const t={visao:'Visão Geral',negocio:'Por Negócio',categoria:'Por Categoria',credores:'Credores',contratos:'Contratos'};
-      const s={visao:'Resumo executivo de todos os financiamentos',negocio:'Análise por linha de negócio',categoria:'Por tipo de bem financiado',credores:'Exposição por instituição financeira',contratos:'Lista detalhada de todos os contratos ativos'};
-      document.getElementById('ttl').textContent=t[id];
-      document.getElementById('sub').textContent=s[id];
+      const titles={visao:'Visão Geral',negocio:'Por Negócio',categoria:'Por Categoria',credores:'Credores',contratos:'Contratos'};
+      const subs={visao:'Resumo executivo de todos os financiamentos',negocio:'Análise por linha de negócio',categoria:'Por tipo de bem financiado',credores:'Exposição por instituição financeira',contratos:'Lista detalhada de todos os contratos ativos'};
+      document.getElementById('ttl').textContent=titles[id];
+      document.getElementById('sub').textContent=subs[id];
       applyF();
     };
   });
 }
 
 function applyF(){
-  const fn=document.getElementById('fn').value;
-  const fc=document.getElementById('fc').value;
-  const fcr=document.getElementById('fcr').value;
-  const fcc=document.getElementById('fcc').value;
+  const fn=document.getElementById('fn').value, fc=document.getElementById('fc').value,
+        fcr=document.getElementById('fcr').value, fcc=document.getElementById('fcc').value;
   filt=RAW.filter(r=>(!fn||r.negocio===fn)&&(!fc||r.categoria===fc)&&(!fcr||r.credor===fcr)&&(!fcc||r.cc===fcc));
-  const pg=document.querySelector('.pg.on');
-  if(pg)renderPg(pg.id.replace('pg-',''));
+  const pg=document.querySelector('.pg.on'); if(pg) renderPg(pg.id.replace('pg-',''));
 }
 
 function resetF(){
   ['fn','fc','fcr','fcc'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('tsrch').value='';
   filt=[...RAW];
-  const pg=document.querySelector('.pg.on');
-  if(pg)renderPg(pg.id.replace('pg-',''));
+  const pg=document.querySelector('.pg.on'); if(pg) renderPg(pg.id.replace('pg-',''));
 }
 
 function initFilters(){
   function opts(key,sel){
-    const el=document.getElementById(sel);
-    while(el.options.length>1)el.remove(1);
+    const el=document.getElementById(sel); while(el.options.length>1)el.remove(1);
     [...new Set(RAW.map(r=>r[key]).filter(Boolean))].sort().forEach(v=>{
-      const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);
+      const o=document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o);
     });
   }
-  opts('negocio','fn');opts('categoria','fc');opts('credor','fcr');opts('cc','fcc');
+  opts('negocio','fn'); opts('categoria','fc'); opts('credor','fcr'); opts('cc','fcc');
 }
 
+// ── RENDER ────────────────────────────────────────────
 const copts={responsive:true,maintainAspectRatio:false};
 const grd={color:'rgba(0,0,0,0.05)'};
 
@@ -515,34 +736,35 @@ function renderPg(id){
     document.getElementById('k4s').textContent=filt.length+' contratos filtrados';
     document.getElementById('dv').textContent=fM(totP);
     document.getElementById('alert-txt').innerHTML='Consolidado de financiamentos — <b>'+filt.length+' contratos</b> selecionados. Saldo devedor de <b>'+fM(tot)+'</b> com parcela mensal de <b>'+fM(totPa)+'</b> e compromisso de <b>'+fM(totP)+'</b> até dez/2025.';
-    const ng=grp(filt,'negocio');const nk=sortedKeys(ng);
-    dch('c1');chs['c1']=new Chart(document.getElementById('c1'),{type:'bar',data:{labels:nk,datasets:[{label:'Saldo',data:nk.map(k=>ng[k].saldo),backgroundColor:nk.map((_,i)=>CL[i%CL.length]),borderRadius:5,borderSkipped:false}]},options:{...copts,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fBR(c.raw)}}},scales:{x:{ticks:{font:{size:10},maxRotation:35},grid:{display:false}},y:{ticks:{callback:v=>fM(v),font:{size:10}},grid:grd}}}});
-    dch('c2');chs['c2']=new Chart(document.getElementById('c2'),{type:'doughnut',data:{labels:nk,datasets:[{data:nk.map(k=>ng[k].pagar),backgroundColor:nk.map((_,i)=>CL[i%CL.length]),borderWidth:2,borderColor:'#fff'}]},options:{...copts,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+': '+fBR(c.raw)}}}}});
-    const cg=grp(filt,'categoria');const ck=sortedKeys(cg);
-    dch('c3');chs['c3']=new Chart(document.getElementById('c3'),{type:'bar',data:{labels:ck,datasets:[{label:'Saldo',data:ck.map(k=>cg[k].saldo),backgroundColor:ck.map((_,i)=>CL[i%CL.length]),borderRadius:5,borderSkipped:false}]},options:{...copts,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fBR(c.raw)}}},scales:{x:{ticks:{callback:v=>fM(v),font:{size:10}},grid:grd},y:{ticks:{font:{size:11}},grid:{display:false}}}}});
+
+    const ng=grp(filt,'negocio'); const nk=sortedKeys(ng);
+    dch('c1'); chs['c1']=new Chart(document.getElementById('c1'),{type:'bar',data:{labels:nk,datasets:[{label:'Saldo',data:nk.map(k=>ng[k].saldo),backgroundColor:nk.map((_,i)=>CL[i%CL.length]),borderRadius:5,borderSkipped:false}]},options:{...copts,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fBR(c.raw)}}},scales:{x:{ticks:{font:{size:10},maxRotation:35},grid:{display:false}},y:{ticks:{callback:fAx,font:{size:10}},grid:grd}}}});
+    dch('c2'); chs['c2']=new Chart(document.getElementById('c2'),{type:'doughnut',data:{labels:nk,datasets:[{data:nk.map(k=>ng[k].pagar),backgroundColor:nk.map((_,i)=>CL[i%CL.length]),borderWidth:2,borderColor:'#fff'}]},options:{...copts,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+': '+fBR(c.raw)}}}}});
+    const cg=grp(filt,'categoria'); const ck=sortedKeys(cg);
+    dch('c3'); chs['c3']=new Chart(document.getElementById('c3'),{type:'bar',data:{labels:ck,datasets:[{label:'Saldo',data:ck.map(k=>cg[k].saldo),backgroundColor:ck.map((_,i)=>CL[i%CL.length]),borderRadius:5,borderSkipped:false}]},options:{...copts,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fBR(c.raw)}}},scales:{x:{ticks:{callback:fAx,font:{size:10}},grid:grd},y:{ticks:{font:{size:11}},grid:{display:false}}}}});
     makeProg('pr-cred',grp(filt,'credor'),tot,false);
   }
 
   if(id==='negocio'){
-    const ng=grp(filt,'negocio');const nk=sortedKeys(ng);
-    const top=nk[0];const topN=nk.slice().sort((a,b)=>ng[b].n-ng[a].n)[0];
+    const ng=grp(filt,'negocio'); const nk=sortedKeys(ng);
+    const top=nk[0]; const topN=nk.slice().sort((a,b)=>ng[b].n-ng[a].n)[0];
     document.getElementById('neg-dom').textContent=top||'—';
     document.getElementById('neg-dom-s').textContent=top?fM(ng[top].saldo)+' — '+(ng[top].saldo/tot*100).toFixed(1)+'%':'—';
     document.getElementById('neg-ct').textContent=nk.length;
     document.getElementById('neg-tot').textContent=filt.length;
     document.getElementById('neg-top-ct').textContent=topN?ng[topN].n:'—';
     document.getElementById('neg-top-cts').textContent=topN?'contratos em '+topN:'—';
-    dch('c4');chs['c4']=new Chart(document.getElementById('c4'),{type:'bar',data:{labels:nk,datasets:[{label:'Saldo Total',data:nk.map(k=>ng[k].saldo),backgroundColor:'#E8511A',borderRadius:4,borderSkipped:false},{label:'A Pagar Dez/25',data:nk.map(k=>ng[k].pagar),backgroundColor:'#1A5FA8',borderRadius:4,borderSkipped:false}]},options:{...copts,plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:10}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fBR(c.raw)}}},scales:{x:{ticks:{font:{size:10},maxRotation:35},grid:{display:false}},y:{ticks:{callback:v=>fM(v),font:{size:10}},grid:grd}}}});
-    dch('c5');chs['c5']=new Chart(document.getElementById('c5'),{type:'bar',data:{labels:nk,datasets:[{label:'Parcela/Mês',data:nk.map(k=>ng[k].parcela),backgroundColor:nk.map((_,i)=>CL[i%CL.length]),borderRadius:5,borderSkipped:false}]},options:{...copts,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fBR(c.raw)}}},scales:{x:{ticks:{font:{size:10},maxRotation:35},grid:{display:false}},y:{ticks:{callback:v=>fM(v),font:{size:10}},grid:grd}}}});
+    dch('c4'); chs['c4']=new Chart(document.getElementById('c4'),{type:'bar',data:{labels:nk,datasets:[{label:'Saldo Total',data:nk.map(k=>ng[k].saldo),backgroundColor:'#E8511A',borderRadius:4,borderSkipped:false},{label:'A Pagar Dez/25',data:nk.map(k=>ng[k].pagar),backgroundColor:'#1A5FA8',borderRadius:4,borderSkipped:false}]},options:{...copts,plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:10}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fBR(c.raw)}}},scales:{x:{ticks:{font:{size:10},maxRotation:35},grid:{display:false}},y:{ticks:{callback:fAx,font:{size:10}},grid:grd}}}});
+    dch('c5'); chs['c5']=new Chart(document.getElementById('c5'),{type:'bar',data:{labels:nk,datasets:[{label:'Parcela/Mês',data:nk.map(k=>ng[k].parcela),backgroundColor:nk.map((_,i)=>CL[i%CL.length]),borderRadius:5,borderSkipped:false}]},options:{...copts,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fBR(c.raw)}}},scales:{x:{ticks:{font:{size:10},maxRotation:35},grid:{display:false}},y:{ticks:{callback:fAx,font:{size:10}},grid:grd}}}});
     let h='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>';
     ['Negócio','Qtd','Saldo Devedor','Parcela/Mês','A Pagar Dez/25','% Total'].forEach(c=>h+='<th style="background:#2D2D2D;color:#fff;padding:8px 12px;font-size:10px;text-transform:uppercase;text-align:left">'+c+'</th>');
     h+='</tr></thead><tbody>';
-    nk.forEach((k,i)=>{const g=ng[k];const p=tot>0?g.saldo/tot*100:0;h+='<tr style="background:'+(i%2?'#fff':'#FAFAFA')+';border-bottom:1px solid #eee"><td style="padding:8px 12px;font-weight:500">'+k+'</td><td style="padding:8px 12px;color:#888">'+g.n+'</td><td style="padding:8px 12px;text-align:right">'+fBR(g.saldo)+'</td><td style="padding:8px 12px;text-align:right">'+fBR(g.parcela)+'</td><td style="padding:8px 12px;text-align:right">'+fBR(g.pagar)+'</td><td style="padding:8px 12px;text-align:right;color:#E8511A;font-weight:600">'+p.toFixed(1)+'%</td></tr>';});
+    nk.forEach((k,i)=>{const g=ng[k];const p=tot>0?g.saldo/tot*100:0;h+='<tr style="background:'+(i%2?'#fff':'#FAFAFA')+';border-bottom:1px solid #eee"><td style="padding:8px 12px;font-weight:500">'+k+'</td><td style="padding:8px 12px;color:#888">'+g.n+'</td><td style="padding:8px 12px;text-align:right;font-variant-numeric:tabular-nums">'+fBR(g.saldo)+'</td><td style="padding:8px 12px;text-align:right;font-variant-numeric:tabular-nums">'+fBR(g.parcela)+'</td><td style="padding:8px 12px;text-align:right;font-variant-numeric:tabular-nums">'+fBR(g.pagar)+'</td><td style="padding:8px 12px;text-align:right;color:#E8511A;font-weight:700">'+p.toFixed(1)+'%</td></tr>';});
     document.getElementById('tn-det').innerHTML=h+'</tbody></table>';
   }
 
   if(id==='categoria'){
-    const cg=grp(filt,'categoria');const ck=sortedKeys(cg);
+    const cg=grp(filt,'categoria'); const ck=sortedKeys(cg);
     document.getElementById('cat-top').textContent=ck[0]||'—';
     document.getElementById('cat-top-s').textContent=ck[0]?fM(cg[ck[0]].saldo)+' — '+(cg[ck[0]].saldo/tot*100).toFixed(1)+'%':'—';
     document.getElementById('cat-ct').textContent=ck.length;
@@ -551,27 +773,26 @@ function renderPg(id){
     const cgv=cg['Capital de Giro'];
     document.getElementById('cat-cg').textContent=cgv?fM(cgv.saldo):'—';
     document.getElementById('cat-cgs').textContent=cgv?(cgv.saldo/tot*100).toFixed(1)+'% — '+cgv.n+' contratos':'sem dados';
-    dch('c6');chs['c6']=new Chart(document.getElementById('c6'),{type:'bar',data:{labels:ck,datasets:[{label:'Saldo',data:ck.map(k=>cg[k].saldo),backgroundColor:ck.map((_,i)=>CL[i%CL.length]),borderRadius:5,borderSkipped:false}]},options:{...copts,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fBR(c.raw)}}},scales:{x:{ticks:{font:{size:11},maxRotation:20},grid:{display:false}},y:{ticks:{callback:v=>fM(v),font:{size:10}},grid:grd}}}});
-    dch('c7');chs['c7']=new Chart(document.getElementById('c7'),{type:'doughnut',data:{labels:ck,datasets:[{data:ck.map(k=>cg[k].saldo),backgroundColor:ck.map((_,i)=>CL[i%CL.length]),borderWidth:2,borderColor:'#fff'}]},options:{...copts,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:9,padding:10}},tooltip:{callbacks:{label:c=>c.label+': '+fM(c.raw)+' ('+(c.raw/tot*100).toFixed(1)+'%)'}}}}});
+    dch('c6'); chs['c6']=new Chart(document.getElementById('c6'),{type:'bar',data:{labels:ck,datasets:[{label:'Saldo',data:ck.map(k=>cg[k].saldo),backgroundColor:ck.map((_,i)=>CL[i%CL.length]),borderRadius:5,borderSkipped:false}]},options:{...copts,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fBR(c.raw)}}},scales:{x:{ticks:{font:{size:11},maxRotation:20},grid:{display:false}},y:{ticks:{callback:fAx,font:{size:10}},grid:grd}}}});
+    dch('c7'); chs['c7']=new Chart(document.getElementById('c7'),{type:'doughnut',data:{labels:ck,datasets:[{data:ck.map(k=>cg[k].saldo),backgroundColor:ck.map((_,i)=>CL[i%CL.length]),borderWidth:2,borderColor:'#fff'}]},options:{...copts,cutout:'55%',plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:9,padding:10}},tooltip:{callbacks:{label:c=>c.label+': '+fBR(c.raw)+' ('+(tot>0?c.raw/tot*100:0).toFixed(1)+'%)'}}}}});
   }
 
   if(id==='credores'){
-    const crg=grp(filt,'credor');const crk=sortedKeys(crg);
-    const top=crk[0];const topG=crg[top]||{};
-    const conc=top?topG.saldo/tot*100:0;
+    const crg=grp(filt,'credor'); const crk=sortedKeys(crg);
+    const top=crk[0]; const topG=crg[top]||{}; const conc=top?topG.saldo/tot*100:0;
     document.getElementById('cred-top').textContent=top?top.split(' ').slice(0,2).join(' '):'—';
     document.getElementById('cred-top-s').textContent=top?conc.toFixed(1)+'% do saldo':'—';
     document.getElementById('cred-ct').textContent=crk.length;
     document.getElementById('cred-top-n').textContent=topG.n||'—';
-    document.getElementById('cred-top-ns').textContent=top?'contratos com '+(top.split(' ')[0]):'—';
+    document.getElementById('cred-top-ns').textContent=top?'contratos com '+top.split(' ')[0]:'—';
     document.getElementById('cred-conc').textContent=conc>80?'Alta':conc>50?'Média':'Baixa';
     document.getElementById('cred-conc-s').textContent=top?'1 credor = '+conc.toFixed(1)+'% da dívida':'—';
     makeProg('pr-cred2',crg,tot,true);
-    dch('c8');chs['c8']=new Chart(document.getElementById('c8'),{type:'doughnut',data:{labels:crk,datasets:[{data:crk.map(k=>crg[k].saldo),backgroundColor:crk.map((_,i)=>CL[i%CL.length]),borderWidth:2,borderColor:'#fff'}]},options:{...copts,cutout:'58%',plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:9,padding:8}},tooltip:{callbacks:{label:c=>(c.label.length>22?c.label.slice(0,21)+'…':c.label)+': '+fM(c.raw)}}}}});
-    dch('c9');chs['c9']=new Chart(document.getElementById('c9'),{type:'bar',data:{labels:crk,datasets:[{label:'A Pagar Dez/25',data:crk.map(k=>crg[k].pagar),backgroundColor:crk.map((_,i)=>CL[i%CL.length]),borderRadius:5,borderSkipped:false}]},options:{...copts,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fBR(c.raw)}}},scales:{x:{ticks:{font:{size:11},maxRotation:20},grid:{display:false}},y:{ticks:{callback:v=>fM(v),font:{size:10}},grid:grd}}}});
+    dch('c8'); chs['c8']=new Chart(document.getElementById('c8'),{type:'doughnut',data:{labels:crk,datasets:[{data:crk.map(k=>crg[k].saldo),backgroundColor:crk.map((_,i)=>CL[i%CL.length]),borderWidth:2,borderColor:'#fff'}]},options:{...copts,cutout:'58%',plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:9,padding:8}},tooltip:{callbacks:{label:c=>(c.label.length>22?c.label.slice(0,21)+'…':c.label)+': '+fBR(c.raw)}}}}});
+    dch('c9'); chs['c9']=new Chart(document.getElementById('c9'),{type:'bar',data:{labels:crk,datasets:[{label:'A Pagar Dez/25',data:crk.map(k=>crg[k].pagar),backgroundColor:crk.map((_,i)=>CL[i%CL.length]),borderRadius:5,borderSkipped:false}]},options:{...copts,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fBR(c.raw)}}},scales:{x:{ticks:{font:{size:11},maxRotation:20},grid:{display:false}},y:{ticks:{callback:fAx,font:{size:10}},grid:grd}}}});
   }
 
-  if(id==='contratos')renderTbl(filt);
+  if(id==='contratos') renderTbl(filt);
 }
 
 function renderTbl(data){
@@ -590,15 +811,15 @@ function ftbl(q){
   const lq=q.toLowerCase();
   renderTbl(filt.filter(r=>r.descricao.toLowerCase().includes(lq)||r.placa.toLowerCase().includes(lq)||r.contrato.toLowerCase().includes(lq)||r.negocio.toLowerCase().includes(lq)||r.cc.toLowerCase().includes(lq)));
 }
-function srt(key){if(sk===key)sd*=-1;else{sk=key;sd=-1;}ftbl(document.getElementById('tsrch').value);}
+function srt(key){ if(sk===key)sd*=-1; else{sk=key;sd=-1;} ftbl(document.getElementById('tsrch').value); }
 function updH(){
   const km={descricao:0,placa:1,negocio:2,categoria:3,cc:4,credor:5,saldo:6,parcela:7,pagar2025:8,meses_aberto:9};
   document.querySelectorAll('#pg-contratos thead th').forEach(t=>t.classList.remove('sa','sd'));
-  const idx=km[sk];
-  if(idx!=null){const t=document.querySelectorAll('#pg-contratos thead th')[idx];if(t)t.classList.add(sd===1?'sa':'sd');}
+  const idx=km[sk]; if(idx!=null){const t=document.querySelectorAll('#pg-contratos thead th')[idx];if(t)t.classList.add(sd===1?'sa':'sd');}
 }
 
-loadData();
+// Fechar modais clicando fora
+document.getElementById('cfg-modal').addEventListener('click', function(e){ if(e.target===this) closeCfg(); });
 </script>
 </body>
 </html>

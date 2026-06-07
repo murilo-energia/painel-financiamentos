@@ -151,6 +151,16 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 .tfoot{padding:8px 17px;font-size:11px;color:var(--g4);border-top:1px solid var(--g2);display:flex;justify-content:space-between;align-items:center}
 .tfoot b{color:var(--og)}
 
+/* ── FILTRO DATA ── */
+.date-bar{display:flex;align-items:center;gap:8px;padding:10px 22px;background:var(--wh);border-bottom:1px solid var(--g2);flex-wrap:wrap}
+.date-bar-lbl{font-size:11px;font-weight:600;color:var(--g4);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.chip{padding:5px 13px;border-radius:20px;border:1.5px solid var(--g2);background:var(--wh);font-size:12px;cursor:pointer;color:var(--g5);transition:all .13s;font-weight:500;white-space:nowrap;user-select:none}
+.chip:hover{border-color:var(--og);color:var(--og)}
+.chip.on{border-color:var(--og);background:var(--og);color:#fff}
+.chip-clr{padding:5px 11px;border-radius:20px;border:1.5px solid var(--g2);background:var(--g1);font-size:12px;cursor:pointer;color:var(--g4);transition:all .13s;font-weight:500;white-space:nowrap}
+.chip-clr:hover{border-color:var(--rd);color:var(--rd)}
+.date-sep{width:1px;height:18px;background:var(--g2);flex-shrink:0}
+
 /* ── CFG PANEL ── */
 .cfg-sec{margin-bottom:18px}
 .cfg-stit{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--og);margin-bottom:9px}
@@ -272,6 +282,14 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
       <button class="btn-clr" onclick="resetF()">↺ Limpar</button>
       <button class="btn-sync" id="bsync" onclick="loadData(true)"><span class="sico">🔄</span>&nbsp;Sincronizar</button>
     </div>
+  </div>
+
+  <!-- ══ FILTRO MÊS/ANO ══ -->
+  <div id="date-bar" class="date-bar" style="display:none">
+    <span class="date-bar-lbl">📅 Período:</span>
+    <div id="date-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    <div class="date-sep"></div>
+    <button class="chip-clr" onclick="clearDateFilter()" id="chip-clr" style="display:none">✕ Limpar período</button>
   </div>
 
   <!-- ── VISÃO GERAL ── -->
@@ -448,6 +466,71 @@ const CL = ['#E8511A','#1A5FA8','#2EA86B','#D4830A','#9B59B6','#D43A3A','#16A085
 let CH = {};
 const dch = id => { if(CH[id]){ CH[id].destroy(); delete CH[id]; } };
 
+// ── FILTRO DE DATA ────────────────────────
+let activeDateKey = null; // 'YYYY-MM' ou null
+
+function parseDateKey(dateStr){
+  // Aceita: 2026-05-31, 31/05/2026, 2026/05/31, etc.
+  if(!dateStr) return null;
+  const s = dateStr.trim();
+  // ISO: 2026-05-31
+  let m = s.match(/^(\d{4})-(\d{2})/);
+  if(m) return m[1]+'-'+m[2];
+  // BR: 31/05/2026
+  m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if(m) return m[3]+'-'+m[2];
+  return null;
+}
+
+function fmtMonthLabel(key){
+  // '2026-05' → 'Mai/2026'
+  const [y,mo] = key.split('-');
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return (meses[parseInt(mo)-1]||mo)+'/'+y;
+}
+
+function buildDateChips(){
+  const keys = [...new Set(RAW.map(r=>parseDateKey(r.data)).filter(Boolean))].sort();
+  const bar  = document.getElementById('date-bar');
+  const cont = document.getElementById('date-chips');
+  cont.innerHTML = '';
+
+  if(keys.length <= 1){
+    // só 1 mês: esconde a barra (não faz sentido filtrar)
+    bar.style.display = 'none';
+    return;
+  }
+
+  bar.style.display = 'flex';
+  keys.forEach(k=>{
+    const btn = document.createElement('button');
+    btn.className = 'chip' + (activeDateKey===k?' on':'');
+    btn.textContent = fmtMonthLabel(k);
+    btn.dataset.key = k;
+    btn.onclick = () => toggleDateFilter(k);
+    cont.appendChild(btn);
+  });
+
+  document.getElementById('chip-clr').style.display = activeDateKey ? 'block' : 'none';
+}
+
+function toggleDateFilter(key){
+  activeDateKey = activeDateKey===key ? null : key;
+  // atualiza visual dos chips
+  document.querySelectorAll('#date-chips .chip').forEach(b=>{
+    b.classList.toggle('on', b.dataset.key===activeDateKey);
+  });
+  document.getElementById('chip-clr').style.display = activeDateKey ? 'block' : 'none';
+  applyF(); // re-filtra com nova data
+}
+
+function clearDateFilter(){
+  activeDateKey = null;
+  document.querySelectorAll('#date-chips .chip').forEach(b=>b.classList.remove('on'));
+  document.getElementById('chip-clr').style.display = 'none';
+  applyF();
+}
+
 function grp(arr, key){
   return arr.reduce((a,r)=>{
     const k=r[key]; if(!a[k])a[k]={n:0,nu:0,saldo:0,parcela:0,pagar:0,contratos:new Set()};
@@ -532,7 +615,7 @@ function parseCSV(txt){
         iCC=fc(['Centro de Custo','Centro']), iSaldo=fc(['Saldo Devedor','Saldo']),
         iPar=fc(['Ultima Parcela','Parcela']), iMes=fc(['Meses em Aberto','Meses']),
         iPag=fc(['Pagar em 2026','Pagar em 2025','Pagar','2026','2025']),
-        iNeg=fc(['Neg']), iCont=fc(['Contrato']);
+        iNeg=fc(['Neg']), iCont=fc(['Contrato']), iData=fc(['DATA','Data','data']);
 
   const pNum = v => {
     if(!v||v===''||v==='-'||v==='#N/A') return 0;
@@ -571,6 +654,7 @@ function parseCSV(txt){
       meses    : iMes>=0 ? parseInt((c[iMes]||'0').replace(/"/g,''))||0 : 0,
       pagar    : iPag>=0 ? pNum(c[iPag]) : 0,
       negocio  : neg,
+      data     : iData>=0 ? (c[iData]||'').replace(/"/g,'').trim() : '',
       categoria: categ(desc)
     });
   }
@@ -641,13 +725,21 @@ function initUI(){
 function applyF(){
   const fn=document.getElementById('fn').value, fc=document.getElementById('fcat').value,
         fcr=document.getElementById('fcr').value, fcc=document.getElementById('fcc').value;
-  FILT = RAW.filter(r=>(!fn||r.negocio===fn)&&(!fc||r.categoria===fc)&&(!fcr||r.credor===fcr)&&(!fcc||r.cc===fcc));
+  FILT = RAW.filter(r=>{
+    if(fn  && r.negocio   !== fn)  return false;
+    if(fc  && r.categoria !== fc)  return false;
+    if(fcr && r.credor    !== fcr) return false;
+    if(fcc && r.cc        !== fcc) return false;
+    if(activeDateKey && parseDateKey(r.data) !== activeDateKey) return false;
+    return true;
+  });
   const pg = document.querySelector('.pg.on'); if(pg) renderPg(pg.id.replace('pg-',''));
 }
 
 function resetF(){
   ['fn','fcat','fcr','fcc'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('tsrch').value='';
+  clearDateFilter(); // limpa data também
   FILT = [...RAW];
   const pg = document.querySelector('.pg.on'); if(pg) renderPg(pg.id.replace('pg-',''));
 }
@@ -659,6 +751,7 @@ function initFilters(){
       .forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o); });
   };
   opts('negocio','fn'); opts('categoria','fcat'); opts('credor','fcr'); opts('cc','fcc');
+  buildDateChips();
 }
 
 // ── RENDER ────────────────────────────────

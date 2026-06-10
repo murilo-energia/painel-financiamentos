@@ -151,6 +151,14 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 .tfoot{padding:8px 17px;font-size:11px;color:var(--g4);border-top:1px solid var(--g2);display:flex;justify-content:space-between;align-items:center}
 .tfoot b{color:var(--og)}
 
+/* ── FILTRO DEPARTAMENTO ── */
+.dept-bar{display:flex;align-items:center;gap:7px;padding:9px 22px;background:#F8F8FA;border-bottom:1px solid var(--g2);flex-wrap:wrap}
+.dept-lbl{font-size:10px;font-weight:700;color:var(--g4);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;flex-shrink:0}
+.dchip{padding:4px 12px;border-radius:16px;border:1.5px solid var(--g2);background:var(--wh);font-size:11px;cursor:pointer;color:var(--g5);transition:all .13s;font-weight:600;white-space:nowrap;user-select:none}
+.dchip:hover{border-color:var(--og);color:var(--og)}
+.dchip.on{border-color:var(--og);background:var(--og);color:#fff}
+.dsep{width:1px;height:16px;background:var(--g2);flex-shrink:0;margin:0 2px}
+
 /* ── FILTRO DATA ── */
 .date-bar{display:flex;align-items:center;gap:8px;padding:10px 22px;background:var(--wh);border-bottom:1px solid var(--g2);flex-wrap:wrap}
 .date-bar-lbl{font-size:11px;font-weight:600;color:var(--g4);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
@@ -231,8 +239,36 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
           </div>
         </div>
       </div>
+      <div class="cfg-sec">
+        <div class="cfg-stit">📝 Senha da planilha</div>
+        <div class="cfg-row">
+          <div><div class="cfg-ll">Senha "Atualizar Dados"</div><div class="cfg-ls">Para abrir a planilha de edição</div></div>
+          <div>
+            <div style="display:flex;gap:6px"><input class="cfg-inp" type="password" id="ns-pwd" placeholder="Nova senha"><button class="cfg-btn" onclick="saveSP()">Salvar</button></div>
+            <div class="cfg-ok" id="sp-ok">✓ Senha da planilha alterada</div>
+          </div>
+        </div>
+      </div>
       <div class="cfg-note">⚠️ As senhas são salvas localmente neste navegador. Em outros dispositivos as senhas padrão serão usadas até serem alteradas naquele dispositivo.</div>
     </div>
+  </div>
+</div>
+
+<!-- ══ MODAL PLANILHA ══ -->
+<div class="overlay" id="sheet-modal" style="display:none">
+  <div class="mbox">
+    <button class="mclose" onclick="closeSheet()">×</button>
+    <img class="mlogo" src="https://murilo-energia.github.io/painel-financiamentos/logo-grupo-energia.png" alt="Grupo Energia" onerror="this.style.display='none'">
+    <div class="mtit">Acesso à Planilha</div>
+    <div class="msub">Digite a senha para acessar os dados</div>
+    <div class="flbl">Senha de acesso à planilha</div>
+    <div class="fwrap">
+      <input class="finp" type="password" id="sheet-pwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')doSheetAccess()">
+      <span class="feye" onclick="eye('sheet-pwd',this)">👁</span>
+    </div>
+    <div class="ferr" id="sheet-err">Senha incorreta.</div>
+    <button class="mbtn" onclick="doSheetAccess()">Abrir planilha</button>
+    <div class="mfoot">A planilha será aberta em nova aba</div>
   </div>
 </div>
 
@@ -259,6 +295,8 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
     <div class="ni" data-pg="categoria">🚛 Por Categoria</div>
     <div class="ni" data-pg="credores">🏦 Credores</div>
     <div class="ni" data-pg="contratos">📋 Contratos</div>
+    <div class="sbs" style="margin-top:4px">Dados</div>
+    <div class="ni" onclick="openSheet()" style="color:#2EA86B">📝 Atualizar Dados</div>
   </div>
   <div class="sb-foot">
     Painel interno <b>Grupo Energia</b><br>Uso confidencial
@@ -282,6 +320,23 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
       <button class="btn-clr" onclick="resetF()">↺ Limpar</button>
       <button class="btn-sync" id="bsync" onclick="loadData(true)"><span class="sico">🔄</span>&nbsp;Sincronizar</button>
     </div>
+  </div>
+
+  <!-- ══ FILTRO DEPARTAMENTO ══ -->
+  <div id="dept-bar" class="dept-bar">
+    <span class="dept-lbl">🏗️ Depto:</span>
+    <button class="dchip on" data-dept="TODOS" onclick="setDept(this)">Todos</button>
+    <button class="dchip" data-dept="ADM" onclick="setDept(this)">ADM</button>
+    <button class="dchip" data-dept="AMB" onclick="setDept(this)">AMB</button>
+    <button class="dchip" data-dept="AMX" onclick="setDept(this)">AMX</button>
+    <button class="dchip" data-dept="ARAPOTI" onclick="setDept(this)">ARAPOTI</button>
+    <button class="dchip" data-dept="DELAVAL" onclick="setDept(this)">DELAVAL</button>
+    <div class="dsep"></div>
+    <button class="dchip" data-dept="LINHAS" onclick="setDept(this)">LINHAS</button>
+    <button class="dchip" data-dept="LTP" onclick="setDept(this)">LTP</button>
+    <button class="dchip" data-dept="REDES" onclick="setDept(this)">REDES</button>
+    <button class="dchip" data-dept="SST" onclick="setDept(this)">SST</button>
+    <button class="dchip" data-dept="FUN" onclick="setDept(this)">FUN</button>
   </div>
 
   <!-- ══ FILTRO MÊS/ANO ══ -->
@@ -450,7 +505,41 @@ function saveAP(){
   document.getElementById('na-pwd').value = '';
   flash('ap-ok');
 }
+function saveSP(){
+  const v = document.getElementById('ns-pwd').value.trim();
+  if(!v){ alert('Digite uma senha válida.'); return; }
+  localStorage.setItem('ge_sp', v);
+  document.getElementById('ns-pwd').value = '';
+  flash('sp-ok');
+}
 function flash(id){ const el=document.getElementById(id); el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
+
+// ── ACESSO À PLANILHA ─────────────────────
+const SHEET_URL  = 'https://docs.google.com/spreadsheets/d/1qTmK4gF3wyi5fdtSK9jofxVI9Xclhkkwo4fLfurB_w8/edit?usp=sharing';
+const DEF_SP     = 'dados@energia'; // senha padrão acesso planilha
+const getSP      = () => localStorage.getItem('ge_sp') || DEF_SP;
+
+function openSheet(){
+  document.getElementById('sheet-modal').style.display = 'flex';
+  document.getElementById('sheet-pwd').value = '';
+  document.getElementById('sheet-err').style.display = 'none';
+  setTimeout(()=>document.getElementById('sheet-pwd').focus(), 80);
+}
+function closeSheet(){ document.getElementById('sheet-modal').style.display = 'none'; }
+document.getElementById('sheet-modal').addEventListener('click', e=>{ if(e.target.id==='sheet-modal') closeSheet(); });
+
+function doSheetAccess(){
+  if(document.getElementById('sheet-pwd').value === getSP()){
+    closeSheet();
+    window.open(SHEET_URL, '_blank');
+  } else {
+    document.getElementById('sheet-err').style.display = 'block';
+    const b = document.querySelector('#sheet-modal .mbox');
+    b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
+    document.getElementById('sheet-pwd').value = '';
+  }
+}
+document.getElementById('sheet-pwd').addEventListener('keydown', e=>{ if(e.key==='Enter') doSheetAccess(); });
 
 // ══════════════════════════════════════════
 //  DADOS
@@ -468,6 +557,34 @@ const dch = id => { if(CH[id]){ CH[id].destroy(); delete CH[id]; } };
 
 // ── FILTRO DE DATA ────────────────────────
 let activeDateKey = null; // 'YYYY-MM' ou null
+
+// ── MAPA DE DEPARTAMENTOS ─────────────────
+// Departamento → lista de negócios que ele agrupa
+const DEPT_MAP = {
+  'TODOS'  : null, // sem filtro
+  'ADM'    : ['ADM'],
+  'AMB'    : ['AMBIENTAL','AMB'],
+  'AMX'    : ['AMX'],
+  'ARAPOTI': ['ARP-COM','ARP-SRV','ARPCOM','ARPSRV'],
+  'DELAVAL': ['DELAVAL-COM','DELAVAL-QUA','DELAVAL-SRV','DLVCOM','DLVQUA','DLVSRV'],
+  'FUN'    : ['FUNDIARIO','FUN'],
+  'LINHAS' : ['LINHAS','LT','BR','CH','CL','SC','ITU'],
+  'LTP'    : ['LTP','ATP','ATS','ATT'],
+  'REDES'  : ['REDES'],
+  'SST'    : ['SST'],
+};
+
+let activeDept = 'TODOS';
+
+function setDept(btn){
+  activeDept = btn.dataset.dept;
+  document.querySelectorAll('.dchip').forEach(b => b.classList.toggle('on', b.dataset.dept === activeDept));
+  applyF();
+}
+
+function deptNegList(){
+  return DEPT_MAP[activeDept] || null; // null = sem restrição
+}
 
 function parseDateKey(dateStr){
   // Aceita: 2026-05-31, 31/05/2026, 2026/05/31, etc.
@@ -725,7 +842,9 @@ function initUI(){
 function applyF(){
   const fn=document.getElementById('fn').value, fc=document.getElementById('fcat').value,
         fcr=document.getElementById('fcr').value, fcc=document.getElementById('fcc').value;
+  const deptNegs = deptNegList(); // null = todos
   FILT = RAW.filter(r=>{
+    if(deptNegs && !deptNegs.includes(r.negocio)) return false;
     if(fn  && r.negocio   !== fn)  return false;
     if(fc  && r.categoria !== fc)  return false;
     if(fcr && r.credor    !== fcr) return false;
@@ -739,7 +858,10 @@ function applyF(){
 function resetF(){
   ['fn','fcat','fcr','fcc'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('tsrch').value='';
-  clearDateFilter(); // limpa data também
+  // reset departamento
+  activeDept = 'TODOS';
+  document.querySelectorAll('.dchip').forEach(b=>b.classList.toggle('on', b.dataset.dept==='TODOS'));
+  clearDateFilter();
   FILT = [...RAW];
   const pg = document.querySelector('.pg.on'); if(pg) renderPg(pg.id.replace('pg-',''));
 }

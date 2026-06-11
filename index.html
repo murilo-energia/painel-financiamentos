@@ -282,7 +282,7 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
     <div class="ni" data-pg="credores">🏦 Credores</div>
     <div class="ni" data-pg="contratos">📋 Contratos</div>
     <div class="sbs admin-only" style="margin-top:4px">Dados</div>
-    <div class="ni admin-only" onclick="openSheet()" style="color:#2EA86B">📝 Atualizar Dados</div>
+    <div class="ni admin-only" data-action="sheet" onclick="openSheet()" style="color:#2EA86B">📝 Atualizar Dados</div>
   </div>
   <div class="sb-foot">
     Painel interno <b>Grupo Energia</b><br>Uso confidencial
@@ -345,7 +345,7 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
   <!-- ── POR NEGÓCIO ── -->
   <div id="pg-negocio" class="pg">
     <div class="kgrid">
-      <div class="kc og"><div class="klbl">💼 Negócio Dominante</div><div class="kval" id="neg-dom">—</div><div class="ksub" id="neg-dom-s">—</div></div>
+      <div class="kc og"><div class="klbl" id="neg-dom-lbl">💼 Negócio Dominante</div><div class="kval" id="neg-dom">—</div><div class="ksub" id="neg-dom-s">—</div></div>
       <div class="kc bl"><div class="klbl">📊 Negócios Ativos</div><div class="kval" id="neg-ct">—</div><div class="ksub">linhas de negócio</div></div>
       <div class="kc gn"><div class="klbl">🔢 Maior Qtd. Contratos</div><div class="kval" id="neg-top-ct">—</div><div class="ksub" id="neg-top-cts">—</div></div>
       <div class="kc am"><div class="klbl">📋 Total Contratos</div><div class="kval" id="neg-tot">—</div><div class="ksub">únicos (sem duplicatas)</div></div>
@@ -818,7 +818,8 @@ function initUI(){
   if(uiOn) return; uiOn = true;
   const titles={visao:'Visão Geral',negocio:'Por Negócio',categoria:'Por Categoria',credores:'Credores',contratos:'Contratos'};
   const subs={visao:'Resumo executivo de todos os financiamentos',negocio:'Análise por linha de negócio',categoria:'Por tipo de bem financiado',credores:'Exposição por instituição financeira',contratos:'Lista detalhada de todos os contratos ativos'};
-  document.querySelectorAll('.ni').forEach(n=>{
+  // Só aplica navegação em itens que têm data-pg (ignora botões como "Atualizar Dados")
+  document.querySelectorAll('.ni[data-pg]').forEach(n=>{
     n.onclick = function(){
       document.querySelectorAll('.ni').forEach(x=>x.classList.remove('on'));
       document.querySelectorAll('.pg').forEach(x=>x.classList.remove('on'));
@@ -897,32 +898,56 @@ function renderPg(id){
     document.getElementById('k4s').textContent = FILT.length+' linhas filtradas';
     document.getElementById('dv').textContent = fBRL(totP);
     document.getElementById('atxt').innerHTML =
-      'Consolidado de financiamentos — <b>'+uniqContratos+' contratos únicos</b> ('+FILT.length+' linhas com rateio). '
-      +'Saldo devedor de <b>'+fBRL(tot)+'</b> com parcela mensal de <b>'+fBRL(totPa)+'</b> e compromisso de <b>'+fBRL(totP)+'</b> até dez/2026.';
+      'Consolidado de financiamentos — <b>'+uniqContratos+' contratos únicos</b> ('+FILT.length+' l'+
+      'inhas com rateio). Saldo devedor de <b>'+fBRL(tot)+'</b> com parcela mensal de <b>'+fBRL(totPa)+
+      '</b> e compromisso de <b>'+fBRL(totP)+'</b> até dez/2026.';
 
-    const ng=grp(FILT,'negocio'); const nk=skeys(ng);
+    // Se um negócio específico está selecionado → quebra por Centro de Custo
+    // Caso contrário → agrupa por Negócio (visão consolidada)
+    const groupKey = (activeDept !== 'TODOS') ? 'cc' : 'negocio';
+    const groupLbl = (activeDept !== 'TODOS') ? 'Centro de Custo' : 'Negócio';
+
+    const ng=grp(FILT, groupKey); const nk=skeys(ng);
     dch('c1'); CH['c1']=new Chart(document.getElementById('c1'),{type:'bar',
       data:{labels:nk,datasets:[{label:'Saldo',data:nk.map(k=>ng[k].saldo),backgroundColor:nk.map((_,i)=>CL[i%CL.length]),borderRadius:5,borderSkipped:false}]},
-      options:{...CO,...TTP(''),scales:{x:{ticks:{font:{size:10},maxRotation:35},grid:{display:false}},y:{ticks:{callback:fAX,font:{size:10}},grid:GRD}}}});
+      options:{...CO,...TTP(''),
+        plugins:{...TTP('').plugins, title:{display: activeDept!=='TODOS', text:'Por '+groupLbl+' — '+activeDept, font:{size:12}, color:'#555', padding:{bottom:8}}},
+        scales:{x:{ticks:{font:{size:10},maxRotation:35},grid:{display:false}},y:{ticks:{callback:fAX,font:{size:10}},grid:GRD}}}});
+
     dch('c2'); CH['c2']=new Chart(document.getElementById('c2'),{type:'doughnut',
       data:{labels:nk,datasets:[{data:nk.map(k=>ng[k].pagar),backgroundColor:nk.map((_,i)=>CL[i%CL.length]),borderWidth:2,borderColor:'#fff'}]},
       options:{...CO,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+': '+fBRL(c.raw)}}}}});
+
     const cg=grp(FILT,'categoria'); const ck=skeys(cg);
     dch('c3'); CH['c3']=new Chart(document.getElementById('c3'),{type:'bar',
       data:{labels:ck,datasets:[{label:'Saldo',data:ck.map(k=>cg[k].saldo),backgroundColor:ck.map((_,i)=>CL[i%CL.length]),borderRadius:5,borderSkipped:false}]},
       options:{...CO,...TTP(''),indexAxis:'y',scales:{x:{ticks:{callback:fAX,font:{size:10}},grid:GRD},y:{ticks:{font:{size:11}},grid:{display:false}}}}});
+
     makeProg('pr-cred', grp(FILT,'credor'), tot, false);
   }
 
-  if(id==='negocio'){
-    const ng=grp(FILT,'negocio'); const nk=skeys(ng);
-    const top=nk[0], topN=nk.slice().sort((a,b)=>ng[b].contratos.size-ng[a].contratos.size)[0];
+    if(id==='negocio'){
+    // Se negócio específico selecionado → detalha por Centro de Custo
+    const groupKey = (activeDept !== 'TODOS') ? 'cc' : 'negocio';
+    const ng=grp(FILT, groupKey); const nk=skeys(ng);
+    const top=nk[0];
+    const topN=nk.slice().sort((a,b)=>ng[b].contratos.size-ng[a].contratos.size)[0];
+
+    // KPIs dinâmicos
+    const domLabel = activeDept !== 'TODOS' ? '📍 Centro Dominante' : '💼 Negócio Dominante';
+    const el = document.getElementById('neg-dom-lbl');
+    if(el) el.textContent = domLabel;
     document.getElementById('neg-dom').textContent = top||'—';
     document.getElementById('neg-dom-s').textContent = top ? fBRL(ng[top].saldo)+' — '+(ng[top].saldo/tot*100).toFixed(1)+'%' : '—';
     document.getElementById('neg-ct').textContent = nk.length;
     document.getElementById('neg-tot').textContent = uniqContratos;
     document.getElementById('neg-top-ct').textContent = topN ? ng[topN].contratos.size : '—';
     document.getElementById('neg-top-cts').textContent = topN ? 'contratos em '+topN : '—';
+
+    // Label da página atualiza conforme modo
+    document.getElementById('tsub').textContent = activeDept !== 'TODOS'
+      ? 'Detalhamento por Centro de Custo — '+activeDept
+      : 'Análise por linha de negócio';
 
     dch('c4'); CH['c4']=new Chart(document.getElementById('c4'),{type:'bar',
       data:{labels:nk,datasets:[
@@ -931,13 +956,16 @@ function renderPg(id){
       ]},
       options:{...CO,plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:10}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+fBRL(c.raw)}}},
         scales:{x:{ticks:{font:{size:10},maxRotation:35},grid:{display:false}},y:{ticks:{callback:fAX,font:{size:10}},grid:GRD}}}});
+
     dch('c5'); CH['c5']=new Chart(document.getElementById('c5'),{type:'bar',
       data:{labels:nk,datasets:[{label:'Parcela/Mês',data:nk.map(k=>ng[k].parcela),backgroundColor:nk.map((_,i)=>CL[i%CL.length]),borderRadius:5,borderSkipped:false}]},
       options:{...CO,...TTP(''),scales:{x:{ticks:{font:{size:10},maxRotation:35},grid:{display:false}},y:{ticks:{callback:fAX,font:{size:10}},grid:GRD}}}});
 
+    // Tabela detalhada
+    const colLabel = activeDept !== 'TODOS' ? 'Centro de Custo' : 'Negócio';
     let h='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>';
-    ['Negócio','Contratos','Saldo Devedor','Parcela/Mês','A Pagar Dez/26','% Total'].forEach(c=>
-      h+='<th style="background:#2D2D2D;color:#fff;padding:8px 11px;font-size:10px;text-transform:uppercase;text-align:left">'+c+'</th>');
+    [colLabel,'Contratos','Saldo Devedor','Parcela/Mês','A Pagar Dez/26','% Total'].forEach(col=>
+      h+='<th style="background:#2D2D2D;color:#fff;padding:8px 11px;font-size:10px;text-transform:uppercase;text-align:left">'+col+'</th>');
     h+='</tr></thead><tbody>';
     nk.forEach((k,i)=>{
       const g=ng[k]; const p=tot>0?g.saldo/tot*100:0;
@@ -953,7 +981,7 @@ function renderPg(id){
     document.getElementById('tn-det').innerHTML=h+'</tbody></table>';
   }
 
-  if(id==='categoria'){
+    if(id==='categoria'){
     const cg=grp(FILT,'categoria'); const ck=skeys(cg);
     document.getElementById('cat-top').textContent = ck[0]||'—';
     document.getElementById('cat-top-s').textContent = ck[0] ? fBRL(cg[ck[0]].saldo)+' — '+(cg[ck[0]].saldo/tot*100).toFixed(1)+'%' : '—';

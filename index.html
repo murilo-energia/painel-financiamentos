@@ -557,8 +557,6 @@ function flash(id){ const el=document.getElementById(id); el.style.display='bloc
 
 // ── ACESSO À PLANILHA ─────────────────────
 const SHEET_URL  = 'https://docs.google.com/spreadsheets/d/1qTmK4gF3wyi5fdtSK9jofxVI9Xclhkkwo4fLfurB_w8/edit?usp=sharing';
-const DEF_SP     = 'dados@energia'; // senha padrão acesso planilha
-const getSP      = () => localStorage.getItem('ge_sp') || DEF_SP;
 
 function openSheet(){
   document.getElementById('sheet-modal').style.display = 'flex';

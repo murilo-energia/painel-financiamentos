@@ -191,7 +191,7 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
   <div class="mbox">
     <img class="mlogo" src="https://murilo-energia.github.io/painel-financiamentos/logo-grupo-energia.png" alt="Grupo Energia" onerror="this.style.display='none'">
     <div class="mtit">Painel de Financiamentos</div>
-    <div class="msub">Acesso restrito — insira a senha para continuar</div>
+    <div class="msub">Use a senha de <b style="color:var(--og)">administrador</b> ou <b style="color:var(--gn)">visualizador</b></div>
     <div class="flbl">Senha de acesso</div>
     <div class="fwrap">
       <input class="finp" type="password" id="lpwd" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
@@ -219,20 +219,33 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
       <button class="mbtn" onclick="verifAdmin()">Acessar configurações</button>
     </div>
     <div id="cfg-panel" style="display:none">
+
+      <!-- info de perfis -->
+      <div style="display:flex;gap:8px;margin-bottom:18px">
+        <div style="flex:1;background:#F0F7FF;border:1px solid #C8DCF5;border-radius:8px;padding:10px 13px">
+          <div style="font-size:11px;font-weight:700;color:var(--bl);margin-bottom:2px">👤 Visualizador</div>
+          <div style="font-size:11px;color:var(--g5)">Acessa o painel, vê todos os dados e filtros. Não vê configurações nem planilha.</div>
+        </div>
+        <div style="flex:1;background:#FFF5F0;border:1px solid #F5CDB8;border-radius:8px;padding:10px 13px">
+          <div style="font-size:11px;font-weight:700;color:var(--og);margin-bottom:2px">👑 Administrador</div>
+          <div style="font-size:11px;color:var(--g5)">Acesso total: painel, configurações e edição da planilha.</div>
+        </div>
+      </div>
+
       <div class="cfg-sec">
-        <div class="cfg-stit">🔒 Senha de visualização</div>
+        <div class="cfg-stit">👤 Senha do Visualizador</div>
         <div class="cfg-row">
-          <div><div class="cfg-ll">Senha do painel (login)</div><div class="cfg-ls">Usada na tela de acesso</div></div>
+          <div><div class="cfg-ll">Senha de acesso (visualizador)</div><div class="cfg-ls">Compartilhe com gestores que só precisam visualizar</div></div>
           <div>
             <div style="display:flex;gap:6px"><input class="cfg-inp" type="password" id="nv-pwd" placeholder="Nova senha"><button class="cfg-btn" onclick="saveVP()">Salvar</button></div>
-            <div class="cfg-ok" id="vp-ok">✓ Senha de visualização alterada</div>
+            <div class="cfg-ok" id="vp-ok">✓ Senha do visualizador alterada</div>
           </div>
         </div>
       </div>
       <div class="cfg-sec">
-        <div class="cfg-stit">🛡️ Senha de administrador</div>
+        <div class="cfg-stit">👑 Senha do Administrador</div>
         <div class="cfg-row">
-          <div><div class="cfg-ll">Senha admin (configurações)</div><div class="cfg-ls">Para acessar este painel</div></div>
+          <div><div class="cfg-ll">Senha admin</div><div class="cfg-ls">Acesso total — mantenha em sigilo</div></div>
           <div>
             <div style="display:flex;gap:6px"><input class="cfg-inp" type="password" id="na-pwd" placeholder="Nova senha admin"><button class="cfg-btn" onclick="saveAP()">Salvar</button></div>
             <div class="cfg-ok" id="ap-ok">✓ Senha admin alterada</div>
@@ -240,9 +253,9 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
         </div>
       </div>
       <div class="cfg-sec">
-        <div class="cfg-stit">📝 Senha da planilha</div>
+        <div class="cfg-stit">📝 Senha da Planilha</div>
         <div class="cfg-row">
-          <div><div class="cfg-ll">Senha "Atualizar Dados"</div><div class="cfg-ls">Para abrir a planilha de edição</div></div>
+          <div><div class="cfg-ll">Senha "Atualizar Dados"</div><div class="cfg-ls">Para abrir a planilha de edição (só admin usa)</div></div>
           <div>
             <div style="display:flex;gap:6px"><input class="cfg-inp" type="password" id="ns-pwd" placeholder="Nova senha"><button class="cfg-btn" onclick="saveSP()">Salvar</button></div>
             <div class="cfg-ok" id="sp-ok">✓ Senha da planilha alterada</div>
@@ -296,13 +309,14 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
     <div class="ni" data-pg="credores">🏦 Credores</div>
     <div class="ni" data-pg="contratos">📋 Contratos</div>
     <div class="sbs" style="margin-top:4px">Dados</div>
-    <div class="ni" onclick="openSheet()" style="color:#2EA86B">📝 Atualizar Dados</div>
+    <div class="ni admin-only" onclick="openSheet()" style="color:#2EA86B">📝 Atualizar Dados</div>
   </div>
   <div class="sb-foot">
     Painel interno <b>Grupo Energia</b><br>Uso confidencial
     <div class="author">✍️ Elaborado por:<br><span>Murilo Henrique Roberto</span></div>
+    <div id="role-badge" style="margin-top:8px;padding-top:7px;border-top:1px solid var(--dk3);font-size:11px;font-weight:600"></div>
   </div>
-  <div class="sb-gear" onclick="openCfg()">⚙️ Configurações</div>
+  <div class="sb-gear admin-only" onclick="openCfg()">⚙️ Configurações</div>
 </nav>
 
 <!-- ══ MAIN ══ -->
@@ -446,20 +460,47 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 const SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFoVgG5DfGniY563BHLNvoswx6TNivO_YkozWKoyJSssEvxUrqkHupKQwlcsS7V9K-DAtHJmLSvbvO/pub?gid=0&single=true&output=csv';
 const DEF_VP = 'energia2025';
 const DEF_AP = 'admin@energia';
+const DEF_SP = 'dados@energia';
 const getVP = () => localStorage.getItem('ge_vp') || DEF_VP;
 const getAP = () => localStorage.getItem('ge_ap') || DEF_AP;
+const getSP = () => localStorage.getItem('ge_sp') || DEF_SP;
+
+// Perfil atual: 'admin' | 'viewer'
+let currentRole = null;
 
 // ── AUTH ──────────────────────────────────
 function doLogin(){
-  if(document.getElementById('lpwd').value === getVP()){
+  const pwd = document.getElementById('lpwd').value;
+  if(pwd === getAP()){
+    currentRole = 'admin';
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('loading').style.display = 'flex';
+    applyRole();
+    loadData();
+  } else if(pwd === getVP()){
+    currentRole = 'viewer';
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('loading').style.display = 'flex';
+    applyRole();
     loadData();
   } else {
     document.getElementById('lerr').style.display = 'block';
     const b = document.querySelector('#login-screen .mbox');
     b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
     document.getElementById('lpwd').value = '';
+  }
+}
+
+// Mostra/oculta elementos por perfil
+function applyRole(){
+  const isAdmin = currentRole === 'admin';
+  document.querySelectorAll('.admin-only').forEach(el=>{
+    el.style.display = isAdmin ? '' : 'none';
+  });
+  const badge = document.getElementById('role-badge');
+  if(badge){
+    badge.textContent = isAdmin ? '👑 Administrador' : '👤 Visualizador';
+    badge.style.color = isAdmin ? 'var(--og)' : 'var(--gn)';
   }
 }
 document.getElementById('lpwd').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
@@ -560,17 +601,19 @@ let activeDateKey = null; // 'YYYY-MM' ou null
 
 // ── MAPA DE DEPARTAMENTOS ─────────────────
 // Departamento → lista de negócios que ele agrupa
+// Mapeamento: Centro de Custo → Negócio (conforme tabela oficial)
+// O filtro de departamento usa o campo NEGOCIO da planilha
 const DEPT_MAP = {
-  'TODOS'  : null, // sem filtro
+  'TODOS'  : null,
+  'ARAPOTI': ['ARAPOTI'],          // ARP-SRV e ARP-COM → negócio ARAPOTI
+  'DELAVAL': ['DELAVAL'],          // DLV-SRV, DLV-COM, DLV-QUA → negócio DELAVAL
+  'LINHAS' : ['LINHAS'],           // LT, LT-SC, LC-BARROSO, LT-CHAVANTES → negócio LINHAS
+  'LTP'    : ['LTP'],              // LTP direto
   'ADM'    : ['ADM'],
-  'AMB'    : ['AMBIENTAL','AMB'],
+  'REDES'  : ['REDES','RD'],
+  'AMB'    : ['AMB','AMBIENTAL'],
+  'FUN'    : ['FUN','FUNDIARIO'],
   'AMX'    : ['AMX'],
-  'ARAPOTI': ['ARP-COM','ARP-SRV','ARPCOM','ARPSRV'],
-  'DELAVAL': ['DELAVAL-COM','DELAVAL-QUA','DELAVAL-SRV','DLVCOM','DLVQUA','DLVSRV'],
-  'FUN'    : ['FUNDIARIO','FUN'],
-  'LINHAS' : ['LINHAS','LT','BR','CH','CL','SC','ITU'],
-  'LTP'    : ['LTP','ATP','ATS','ATT'],
-  'REDES'  : ['REDES'],
   'SST'    : ['SST'],
 };
 

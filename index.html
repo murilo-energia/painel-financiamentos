@@ -252,36 +252,9 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
           </div>
         </div>
       </div>
-      <div class="cfg-sec">
-        <div class="cfg-stit">📝 Senha da Planilha</div>
-        <div class="cfg-row">
-          <div><div class="cfg-ll">Senha "Atualizar Dados"</div><div class="cfg-ls">Para abrir a planilha de edição (só admin usa)</div></div>
-          <div>
-            <div style="display:flex;gap:6px"><input class="cfg-inp" type="password" id="ns-pwd" placeholder="Nova senha"><button class="cfg-btn" onclick="saveSP()">Salvar</button></div>
-            <div class="cfg-ok" id="sp-ok">✓ Senha da planilha alterada</div>
-          </div>
-        </div>
       </div>
       <div class="cfg-note">⚠️ As senhas são salvas localmente neste navegador. Em outros dispositivos as senhas padrão serão usadas até serem alteradas naquele dispositivo.</div>
     </div>
-  </div>
-</div>
-
-<!-- ══ MODAL PLANILHA ══ -->
-<div class="overlay" id="sheet-modal" style="display:none">
-  <div class="mbox">
-    <button class="mclose" onclick="closeSheet()">×</button>
-    <img class="mlogo" src="https://murilo-energia.github.io/painel-financiamentos/logo-grupo-energia.png" alt="Grupo Energia" onerror="this.style.display='none'">
-    <div class="mtit">Acesso à Planilha</div>
-    <div class="msub">Digite a senha para acessar os dados</div>
-    <div class="flbl">Senha de acesso à planilha</div>
-    <div class="fwrap">
-      <input class="finp" type="password" id="sheet-pwd" placeholder="••••••••">
-      <span class="feye" onclick="eye('sheet-pwd',this)">👁</span>
-    </div>
-    <div class="ferr" id="sheet-err">Senha incorreta.</div>
-    <button class="mbtn" onclick="doSheetAccess()">Abrir planilha</button>
-    <div class="mfoot">A planilha será aberta em nova aba</div>
   </div>
 </div>
 
@@ -308,7 +281,7 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
     <div class="ni" data-pg="categoria">🚛 Por Categoria</div>
     <div class="ni" data-pg="credores">🏦 Credores</div>
     <div class="ni" data-pg="contratos">📋 Contratos</div>
-    <div class="sbs" style="margin-top:4px">Dados</div>
+    <div class="sbs admin-only" style="margin-top:4px">Dados</div>
     <div class="ni admin-only" onclick="openSheet()" style="color:#2EA86B">📝 Atualizar Dados</div>
   </div>
   <div class="sb-foot">
@@ -336,21 +309,10 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
     </div>
   </div>
 
-  <!-- ══ FILTRO DEPARTAMENTO ══ -->
-  <div id="dept-bar" class="dept-bar">
-    <span class="dept-lbl">🏗️ Depto:</span>
-    <button class="dchip on" data-dept="TODOS" onclick="setDept(this)">Todos</button>
-    <button class="dchip" data-dept="ADM" onclick="setDept(this)">ADM</button>
-    <button class="dchip" data-dept="AMB" onclick="setDept(this)">AMB</button>
-    <button class="dchip" data-dept="AMX" onclick="setDept(this)">AMX</button>
-    <button class="dchip" data-dept="ARAPOTI" onclick="setDept(this)">ARAPOTI</button>
-    <button class="dchip" data-dept="DELAVAL" onclick="setDept(this)">DELAVAL</button>
-    <div class="dsep"></div>
-    <button class="dchip" data-dept="LINHAS" onclick="setDept(this)">LINHAS</button>
-    <button class="dchip" data-dept="LTP" onclick="setDept(this)">LTP</button>
-    <button class="dchip" data-dept="REDES" onclick="setDept(this)">REDES</button>
-    <button class="dchip" data-dept="SST" onclick="setDept(this)">SST</button>
-    <button class="dchip" data-dept="FUN" onclick="setDept(this)">FUN</button>
+  <!-- ══ FILTRO NEGÓCIO ══ -->
+  <div id="dept-bar" class="dept-bar" style="display:none">
+    <span class="dept-lbl">🏢 Negócio:</span>
+    <div id="dept-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
   </div>
 
   <!-- ══ FILTRO MÊS/ANO ══ -->
@@ -460,10 +422,8 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 const SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFoVgG5DfGniY563BHLNvoswx6TNivO_YkozWKoyJSssEvxUrqkHupKQwlcsS7V9K-DAtHJmLSvbvO/pub?gid=0&single=true&output=csv';
 const DEF_VP = 'energia2025';
 const DEF_AP = 'admin@energia';
-const DEF_SP = 'dados@energia';
 const getVP = () => localStorage.getItem('ge_vp') || DEF_VP;
 const getAP = () => localStorage.getItem('ge_ap') || DEF_AP;
-const getSP = () => localStorage.getItem('ge_sp') || DEF_SP;
 
 // Perfil atual: 'admin' | 'viewer'
 let currentRole = null;
@@ -546,39 +506,15 @@ function saveAP(){
   document.getElementById('na-pwd').value = '';
   flash('ap-ok');
 }
-function saveSP(){
-  const v = document.getElementById('ns-pwd').value.trim();
-  if(!v){ alert('Digite uma senha válida.'); return; }
-  localStorage.setItem('ge_sp', v);
-  document.getElementById('ns-pwd').value = '';
-  flash('sp-ok');
-}
 function flash(id){ const el=document.getElementById(id); el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
 
 // ── ACESSO À PLANILHA ─────────────────────
-const SHEET_URL  = 'https://docs.google.com/spreadsheets/d/1qTmK4gF3wyi5fdtSK9jofxVI9Xclhkkwo4fLfurB_w8/edit?usp=sharing';
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1qTmK4gF3wyi5fdtSK9jofxVI9Xclhkkwo4fLfurB_w8/edit?usp=sharing';
 
+// Admin acessa direto — sem senha
 function openSheet(){
-  document.getElementById('sheet-modal').style.display = 'flex';
-  document.getElementById('sheet-pwd').value = '';
-  document.getElementById('sheet-err').style.display = 'none';
-  setTimeout(()=>document.getElementById('sheet-pwd').focus(), 80);
+  window.open(SHEET_URL, '_blank');
 }
-function closeSheet(){ document.getElementById('sheet-modal').style.display = 'none'; }
-document.getElementById('sheet-modal').addEventListener('click', e=>{ if(e.target.id==='sheet-modal') closeSheet(); });
-
-function doSheetAccess(){
-  if(document.getElementById('sheet-pwd').value === getSP()){
-    closeSheet();
-    window.open(SHEET_URL, '_blank');
-  } else {
-    document.getElementById('sheet-err').style.display = 'block';
-    const b = document.querySelector('#sheet-modal .mbox');
-    b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake');
-    document.getElementById('sheet-pwd').value = '';
-  }
-}
-document.getElementById('sheet-pwd').addEventListener('keydown', e=>{ if(e.key==='Enter') doSheetAccess(); });
 
 // ══════════════════════════════════════════
 //  DADOS
@@ -599,34 +535,50 @@ let activeDateKey = null; // 'YYYY-MM' ou null
 
 // ── MAPA DE DEPARTAMENTOS ─────────────────
 // Departamento → lista de negócios que ele agrupa
-// Mapeamento: Centro de Custo → Negócio (conforme tabela oficial)
-// O filtro de departamento usa o campo NEGOCIO da planilha
-const DEPT_MAP = {
-  'TODOS'  : null,
-  'ARAPOTI': ['ARAPOTI'],          // ARP-SRV e ARP-COM → negócio ARAPOTI
-  'DELAVAL': ['DELAVAL'],          // DLV-SRV, DLV-COM, DLV-QUA → negócio DELAVAL
-  'LINHAS' : ['LINHAS'],           // LT, LT-SC, LC-BARROSO, LT-CHAVANTES → negócio LINHAS
-  'LTP'    : ['LTP'],              // LTP direto
-  'ADM'    : ['ADM'],
-  'REDES'  : ['REDES','RD'],
-  'AMB'    : ['AMB','AMBIENTAL'],
-  'FUN'    : ['FUN','FUNDIARIO'],
-  'AMX'    : ['AMX'],
-  'SST'    : ['SST'],
-};
+// ── FILTRO NEGÓCIO DINÂMICO ──────────────
+// Os chips são construídos a partir dos valores reais da coluna Negócio
+// lidos da planilha — sem mapeamento fixo
 
 let activeDept = 'TODOS';
 
+function buildDeptChips(){
+  const bar   = document.getElementById('dept-bar');
+  const cont  = document.getElementById('dept-chips');
+  const negs  = [...new Set(RAW.map(r=>r.negocio).filter(Boolean))].sort();
+
+  cont.innerHTML = '';
+
+  // Botão "Todos"
+  const all = document.createElement('button');
+  all.className = 'dchip on';
+  all.dataset.dept = 'TODOS';
+  all.textContent = 'Todos';
+  all.onclick = () => setDept(all);
+  cont.appendChild(all);
+
+  negs.forEach(neg => {
+    const btn = document.createElement('button');
+    btn.className = 'dchip';
+    btn.dataset.dept = neg;
+    btn.textContent = neg;
+    btn.onclick = () => setDept(btn);
+    cont.appendChild(btn);
+  });
+
+  bar.style.display = negs.length > 1 ? 'flex' : 'none';
+}
+
 function setDept(btn){
   activeDept = btn.dataset.dept;
-  document.querySelectorAll('.dchip').forEach(b => b.classList.toggle('on', b.dataset.dept === activeDept));
+  document.querySelectorAll('#dept-chips .dchip').forEach(b =>
+    b.classList.toggle('on', b.dataset.dept === activeDept)
+  );
   applyF();
 }
 
 function deptNegList(){
-  return DEPT_MAP[activeDept] || null; // null = sem restrição
+  return activeDept === 'TODOS' ? null : [activeDept];
 }
-
 function parseDateKey(dateStr){
   // Aceita: 2026-05-31, 31/05/2026, 2026/05/31, etc.
   if(!dateStr) return null;
@@ -899,9 +851,10 @@ function applyF(){
 function resetF(){
   ['fn','fcat','fcr','fcc'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('tsrch').value='';
-  // reset departamento
   activeDept = 'TODOS';
-  document.querySelectorAll('.dchip').forEach(b=>b.classList.toggle('on', b.dataset.dept==='TODOS'));
+  document.querySelectorAll('#dept-chips .dchip').forEach(b=>
+    b.classList.toggle('on', b.dataset.dept==='TODOS')
+  );
   clearDateFilter();
   FILT = [...RAW];
   const pg = document.querySelector('.pg.on'); if(pg) renderPg(pg.id.replace('pg-',''));
@@ -914,6 +867,7 @@ function initFilters(){
       .forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o); });
   };
   opts('negocio','fn'); opts('categoria','fcat'); opts('credor','fcr'); opts('cc','fcc');
+  buildDeptChips();
   buildDateChips();
 }
 

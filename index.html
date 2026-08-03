@@ -281,6 +281,7 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
     <div class="ni" data-pg="categoria">🚛 Por Categoria</div>
     <div class="ni" data-pg="credores">🏦 Credores</div>
     <div class="ni" data-pg="contratos">📋 Contratos</div>
+    <div class="ni" data-pg="faturamento">📈 Faturamento</div>
     <div class="sbs admin-only" style="margin-top:4px">Dados</div>
     <div class="ni admin-only" data-action="sheet" onclick="openSheet()" style="color:#2EA86B">📝 Atualizar Dados</div>
   </div>
@@ -413,13 +414,58 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
       <div class="tfoot"><span id="tfl">—</span><b>Grupo Energia — Financiamentos</b></div>
     </div>
   </div>
+  <!-- ── FATURAMENTO ── -->
+  <div id="pg-faturamento" class="pg">
+    <div class="alert"><span style="font-size:19px;flex-shrink:0">📈</span>
+      <span class="alert-t" id="fat-atxt">Carregando dados de faturamento...</span></div>
+    <div class="kgrid">
+      <div class="kc og"><div class="klbl">💵 Faturamento Total</div><div class="kval" id="fat-k1">—</div><div class="ksub" id="fat-k1s">—</div></div>
+      <div class="kc bl"><div class="klbl">🧾 Parcela Total Mensal</div><div class="kval" id="fat-k2">—</div><div class="ksub" id="fat-k2s">—</div></div>
+      <div class="kc gn"><div class="klbl">✅ Índice de Cobertura</div><div class="kval" id="fat-k3">—</div><div class="ksub">Faturamento ÷ Parcela</div></div>
+      <div class="kc am"><div class="klbl">📅 Meses com Dados</div><div class="kval" id="fat-k4">—</div><div class="ksub">períodos registrados</div></div>
+    </div>
+    <div class="cardf">
+      <div class="ctit">Faturamento vs Parcela de Financiamento — por Negócio</div>
+      <div class="csub">Fatura mais do que paga? Verde = saudável, Vermelho = atenção</div>
+      <div class="cw" style="height:300px"><canvas id="cf1"></canvas></div>
+    </div>
+    <div class="row2e">
+      <div class="card">
+        <div class="ctit">Evolução Mensal</div>
+        <div class="csub">Faturamento total por período</div>
+        <div class="cw" style="height:240px"><canvas id="cf2"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="ctit">Cobertura por Negócio</div>
+        <div class="csub">Índice Faturamento ÷ Parcela &nbsp;(meta: &gt; 1,0x)</div>
+        <div id="fat-coverage" style="margin-top:8px;max-height:240px;overflow:auto"></div>
+      </div>
+    </div>
+    <div class="tw">
+      <div class="th2">
+        <div><div class="ctit">Detalhe por Centro de Custo</div><div class="csub" id="fat-tcnt">—</div></div>
+      </div>
+      <div style="max-height:380px;overflow-y:auto">
+        <table>
+          <thead><tr>
+            <th>Data</th><th>Centro de Custo</th><th>C.C. Obra</th><th>Setor</th><th>Negócio</th><th style="text-align:right">Faturamento</th>
+          </tr></thead>
+          <tbody id="fat-tbody"></tbody>
+        </table>
+      </div>
+      <div class="tfoot"><span id="fat-tfl">—</span><b>Grupo Energia — Faturamento</b></div>
+    </div>
+  </div>
+
+
 </div>
 
 <script>
 // ══════════════════════════════════════════
 //  CONFIGURAÇÃO
 // ══════════════════════════════════════════
-const SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFoVgG5DfGniY563BHLNvoswx6TNivO_YkozWKoyJSssEvxUrqkHupKQwlcsS7V9K-DAtHJmLSvbvO/pub?gid=0&single=true&output=csv';
+const SHEETS_URL  = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFoVgG5DfGniY563BHLNvoswx6TNivO_YkozWKoyJSssEvxUrqkHupKQwlcsS7V9K-DAtHJmLSvbvO/pub?gid=0&single=true&output=csv';
+const FAT_URL     = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSFoVgG5DfGniY563BHLNvoswx6TNivO_YkozWKoyJSssEvxUrqkHupKQwlcsS7V9K-DAtHJmLSvbvO/pub?gid=1295266980&single=true&output=csv';
 const DEF_VP = 'energia2025';
 const DEF_AP = 'admin@energia';
 const getVP = () => localStorage.getItem('ge_vp') || DEF_VP;
@@ -520,6 +566,7 @@ function openSheet(){
 //  DADOS
 // ══════════════════════════════════════════
 let RAW=[], FILT=[], sk='saldo', sd=-1;
+let FAT_RAW=[];
 
 // Formatação: valor completo com decimais BRL
 const fBRL = v => 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -784,6 +831,17 @@ async function loadData(manual=false){
     if(!data.length) throw new Error('Nenhum dado válido. Verifique se a planilha está publicada como CSV.');
 
     RAW = data; FILT = [...RAW];
+
+    // Busca faturamento em paralelo (sem bloquear se falhar)
+    try {
+      const fatCsv = await fetchCSVFromUrl(FAT_URL);
+      FAT_RAW = parseFatCSV(fatCsv);
+      console.log('✅ Faturamento carregado:', FAT_RAW.length, 'linhas');
+    } catch(ef) {
+      console.warn('Faturamento não carregado:', ef.message);
+      FAT_RAW = [];
+    }
+
     initFilters(); initUI();
 
     const now = new Date();
@@ -1061,6 +1119,233 @@ function updH(){
   document.querySelectorAll('#pg-contratos thead th').forEach(t=>t.classList.remove('sa','sd'));
   const idx=km[sk]; if(idx!=null){ const t=document.querySelectorAll('#pg-contratos thead th')[idx]; if(t)t.classList.add(sd===1?'sa':'sd'); }
 }
+
+// ── FETCH GENÉRICO (reutilizável para qualquer aba) ──
+async function fetchCSVFromUrl(baseUrl){
+  const ts  = Date.now();
+  const u   = baseUrl + '&_=' + ts;
+  const proxies = [
+    'https://corsproxy.io/?' + encodeURIComponent(u),
+    'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+    'https://api.allorigins.win/get?url=' + encodeURIComponent(u),
+  ];
+  for(let i=0; i<proxies.length; i++){
+    try{
+      const ctrl = new AbortController();
+      const tid  = setTimeout(()=>ctrl.abort(), 10000);
+      const res  = await fetch(proxies[i], {signal:ctrl.signal, cache:'no-store'});
+      clearTimeout(tid);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const txt = await res.text();
+      if(txt.startsWith('{') && txt.includes('"contents"')){ const j=JSON.parse(txt); return j.contents||''; }
+      if(txt.length > 40) return txt;
+      throw new Error('vazio');
+    } catch(e){ console.warn('proxy '+(i+1)+' falhou:',e.message); }
+  }
+  throw new Error('Todos os proxies falharam para: '+baseUrl);
+}
+
+// ── PARSER FATURAMENTO ────────────────────
+function parseFatCSV(txt){
+  const lines = txt.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n');
+  if(lines.length < 2) return [];
+
+  function pLine(line){
+    const cols=[]; let cur='',inQ=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){ if(inQ&&line[i+1]==='"'){cur+='"';i++;} else inQ=!inQ; }
+      else if(ch===','&&!inQ){ cols.push(cur.trim()); cur=''; }
+      else cur+=ch;
+    }
+    cols.push(cur.trim()); return cols;
+  }
+
+  const hdrs = pLine(lines[0]);
+  const fc = names => {
+    for(const n of names){
+      const i = hdrs.findIndex(h=>h.replace(/"/g,'').toLowerCase().includes(n.toLowerCase()));
+      if(i>=0) return i;
+    }
+    return -1;
+  };
+
+  // Colunas da aba FATURAMENTO
+  const iData  = fc(['DATA','data']);
+  const iCC    = fc(['CENTRO DE CUSTOS','Centro de Custo','CC']);
+  const iValor = fc(['VALOR','valor','Valor']);
+  const iCCO   = fc(['CENTRO DE CUSTOS OBRA','CC OBRA','Obra']);
+  const iSetor = fc(['SETOR','Setor','setor']);
+  const iNeg   = fc(['NEGÓCIO','NEGOCIO','Neg']);
+
+  console.log('FAT headers:', hdrs);
+  console.log('FAT col idx:', {iData,iCC,iValor,iCCO,iSetor,iNeg});
+
+  const pNum = v => {
+    if(!v||v===''||v==='-') return 0;
+    let s = v.replace(/"/g,'').replace(/R\$\s*/g,'').trim();
+    if(s.includes(',')&&s.includes('.')) return parseFloat(s.replace(/\./g,'').replace(',','.'));
+    if(s.includes(',')) return parseFloat(s.replace(',','.'));
+    return parseFloat(s)||0;
+  };
+
+  const rows=[];
+  for(let i=1; i<lines.length; i++){
+    if(!lines[i].trim()) continue;
+    const cols = pLine(lines[i]);
+    const valor = iValor>=0 ? pNum(cols[iValor]) : 0;
+    if(valor <= 0) continue;
+    rows.push({
+      data  : iData>=0  ? cols[iData].replace(/"/g,'').trim()  : '',
+      cc    : iCC>=0    ? cols[iCC].replace(/"/g,'').trim()    : '',
+      valor,
+      cco   : iCCO>=0   ? cols[iCCO].replace(/"/g,'').trim()  : '',
+      setor : iSetor>=0  ? cols[iSetor].replace(/"/g,'').trim(): '',
+      negocio: iNeg>=0  ? cols[iNeg].replace(/"/g,'').trim()  : '',
+    });
+  }
+  return rows;
+}
+
+// ── RENDER FATURAMENTO ────────────────────
+function renderFaturamento(){
+  if(!FAT_RAW.length){
+    document.getElementById('fat-atxt').innerHTML =
+      '⚠️ Dados de faturamento não carregados. Clique em <b>Sincronizar</b> para tentar novamente.';
+    return;
+  }
+
+  // Aplica filtros de negócio e data do painel principal
+  const deptNegs = deptNegList();
+  const fat = FAT_RAW.filter(r=>{
+    if(deptNegs && !deptNegs.includes(r.negocio)) return false;
+    if(activeDateKey && parseDateKey(r.data) !== activeDateKey) return false;
+    return true;
+  });
+
+  const totFat  = fat.reduce((s,r)=>s+r.valor, 0);
+  const totParc = FILT.reduce((s,r)=>s+r.parcela, 0);
+  const cobertura = totParc > 0 ? totFat / totParc : 0;
+  const meses = [...new Set(fat.map(r=>parseDateKey(r.data)).filter(Boolean))].length;
+
+  // KPIs
+  document.getElementById('fat-k1').textContent = fBRL(totFat);
+  document.getElementById('fat-k1s').textContent = fat.length + ' registros';
+  document.getElementById('fat-k2').textContent = fBRL(totParc);
+  document.getElementById('fat-k2s').textContent = FILT.length + ' contratos filtrados';
+  document.getElementById('fat-k3').textContent = cobertura.toFixed(2) + 'x';
+  document.getElementById('fat-k3').style.color = cobertura >= 1 ? 'var(--gn)' : 'var(--rd)';
+  document.getElementById('fat-k4').textContent = meses || '—';
+
+  document.getElementById('fat-atxt').innerHTML =
+    'Faturamento total de <b>' + fBRL(totFat) + '</b> vs parcelas de <b>' + fBRL(totParc) +
+    '</b> — Índice de cobertura: <b style="color:' + (cobertura>=1?'var(--gn)':'var(--rd)') + '">' +
+    cobertura.toFixed(2) + 'x</b> ' + (cobertura>=1 ? '✅ Saudável' : '⚠️ Atenção');
+
+  // Agrupa faturamento e parcela por negócio
+  const fatByNeg = fat.reduce((a,r)=>{
+    if(!a[r.negocio]) a[r.negocio] = 0;
+    a[r.negocio] += r.valor;
+    return a;
+  }, {});
+  const parcByNeg = FILT.reduce((a,r)=>{
+    if(!a[r.negocio]) a[r.negocio] = 0;
+    a[r.negocio] += r.parcela;
+    return a;
+  }, {});
+
+  // União de todos os negócios presentes
+  const allNegs = [...new Set([...Object.keys(fatByNeg), ...Object.keys(parcByNeg)])].sort();
+  const fatVals  = allNegs.map(n => fatByNeg[n]  || 0);
+  const parcVals = allNegs.map(n => parcByNeg[n] || 0);
+
+  // Chart 1 — Faturamento vs Parcela por Negócio
+  dch('cf1');
+  CH['cf1'] = new Chart(document.getElementById('cf1'), {
+    type: 'bar',
+    data: {
+      labels: allNegs,
+      datasets: [
+        { label: 'Faturamento',  data: fatVals,  backgroundColor: '#2EA86B', borderRadius: 4, borderSkipped: false },
+        { label: 'Parcela Mensal', data: parcVals, backgroundColor: '#E8511A', borderRadius: 4, borderSkipped: false },
+      ]
+    },
+    options: {
+      ...CO,
+      plugins: {
+        legend: { position:'top', labels:{ font:{size:11}, boxWidth:10 } },
+        tooltip: { callbacks:{ label: c => c.dataset.label + ': ' + fBRL(c.raw) } }
+      },
+      scales: {
+        x: { ticks:{ font:{size:10}, maxRotation:35 }, grid:{ display:false } },
+        y: { ticks:{ callback: fAX, font:{size:10} }, grid: GRD }
+      }
+    }
+  });
+
+  // Chart 2 — Evolução Mensal Faturamento
+  const fatByMonth = {};
+  fat.forEach(r=>{
+    const k = parseDateKey(r.data);
+    if(k){ if(!fatByMonth[k]) fatByMonth[k]=0; fatByMonth[k]+=r.valor; }
+  });
+  const months = Object.keys(fatByMonth).sort();
+  const monthLabels = months.map(fmtMonthLabel);
+  const monthVals   = months.map(k=>fatByMonth[k]);
+
+  dch('cf2');
+  CH['cf2'] = new Chart(document.getElementById('cf2'), {
+    type: 'bar',
+    data: {
+      labels: monthLabels,
+      datasets: [{
+        label: 'Faturamento',
+        data: monthVals,
+        backgroundColor: months.map((_,i)=>['#2EA86B','#1A5FA8','#E8511A','#D4830A'][i%4]),
+        borderRadius: 5, borderSkipped: false
+      }]
+    },
+    options: {
+      ...CO,
+      plugins: { legend:{ display:false }, tooltip:{ callbacks:{ label:c=>fBRL(c.raw) } } },
+      scales: {
+        x: { ticks:{ font:{size:11} }, grid:{ display:false } },
+        y: { ticks:{ callback:fAX, font:{size:10} }, grid: GRD }
+      }
+    }
+  });
+
+  // Cobertura por negócio (barras de progresso com cor)
+  const sorted = [...allNegs].sort((a,b)=>(fatByNeg[b]||0)-(fatByNeg[a]||0));
+  document.getElementById('fat-coverage').innerHTML = sorted.map((neg,i)=>{
+    const fat_v  = fatByNeg[neg]  || 0;
+    const parc_v = parcByNeg[neg] || 0;
+    const cob    = parc_v > 0 ? fat_v/parc_v : (fat_v>0 ? 99 : 0);
+    const cobStr = parc_v > 0 ? cob.toFixed(2)+'x' : '—';
+    const col    = cob >= 1 ? '#2EA86B' : cob > 0 ? '#D4830A' : '#888';
+    const pct    = Math.min(cob * 50, 100); // 2x = 100%
+    return '<div class="prw">'
+      +'<div class="prl" title="'+neg+'" style="flex:0 0 100px">'+(neg.length>12?neg.slice(0,11)+'…':neg)+'</div>'
+      +'<div class="prb"><div class="prf" style="width:'+Math.max(pct,1)+'%;background:'+col+'"></div></div>'
+      +'<div class="prv" style="color:'+col+';font-weight:700">'+cobStr+'</div>'
+      +'</div>';
+  }).join('');
+
+  // Tabela detalhe
+  const sorted_fat = [...fat].sort((a,b)=>b.valor-a.valor);
+  document.getElementById('fat-tcnt').textContent = sorted_fat.length + ' registros de faturamento';
+  document.getElementById('fat-tfl').textContent  = sorted_fat.length + ' linhas';
+  document.getElementById('fat-tbody').innerHTML  = sorted_fat.map(r=>
+    '<tr><td style="font-size:11px;color:#888">'+r.data+'</td>'
+    +'<td style="font-size:12px">'+r.cc+'</td>'
+    +'<td style="font-size:11px;color:#555">'+r.cco+'</td>'
+    +'<td style="font-size:11px;color:#555">'+r.setor+'</td>'
+    +'<td><span class="bdg b-ot" style="background:#E8F0FB;color:#1A5FA8">'+r.negocio+'</span></td>'
+    +'<td class="nm" style="color:#2EA86B">'+fBRL(r.valor)+'</td>'
+    +'</tr>'
+  ).join('');
+}
+
 </script>
 </body>
 </html>

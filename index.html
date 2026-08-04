@@ -169,6 +169,12 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
 .chip-clr:hover{border-color:var(--rd);color:var(--rd)}
 .date-sep{width:1px;height:18px;background:var(--g2);flex-shrink:0}
 
+/* ── CHART TYPE TOGGLE ── */
+.chart-toggle{display:flex;gap:4px}
+.ct-btn{padding:3px 10px;border-radius:12px;border:1.5px solid var(--g2);background:var(--wh);font-size:11px;cursor:pointer;color:var(--g4);transition:all .13s;font-weight:500;line-height:1.5}
+.ct-btn:hover{border-color:var(--og);color:var(--og)}
+.ct-btn.on{border-color:var(--og);background:var(--og);color:#fff}
+
 /* ── CFG PANEL ── */
 .cfg-sec{margin-bottom:18px}
 .cfg-stit{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--og);margin-bottom:9px}
@@ -425,7 +431,15 @@ td.nm{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
       <div class="kc am"><div class="klbl">📅 Meses com Dados</div><div class="kval" id="fat-k4">—</div><div class="ksub">períodos registrados</div></div>
     </div>
     <div class="cardf">
-      <div class="ctit">Faturamento vs Parcela de Financiamento — por Negócio</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:3px">
+        <div class="ctit">Faturamento vs Parcela de Financiamento — por Negócio</div>
+        <div class="chart-toggle" id="cf1-toggle">
+          <button class="ct-btn on" data-mode="bar"     onclick="setCf1Mode('bar',this)"    title="Barras agrupadas">▌▌</button>
+          <button class="ct-btn"   data-mode="line"    onclick="setCf1Mode('line',this)"   title="Linhas">〜</button>
+          <button class="ct-btn"   data-mode="mixed"   onclick="setCf1Mode('mixed',this)"  title="Misto: Fat. linha + Parcela barra">⌇</button>
+          <button class="ct-btn"   data-mode="mixed2"  onclick="setCf1Mode('mixed2',this)" title="Misto: Fat. barra + Parcela linha">≡</button>
+        </div>
+      </div>
       <div class="csub">Fatura mais do que paga? Verde = saudável, Vermelho = atenção</div>
       <div class="cw" style="height:300px"><canvas id="cf1"></canvas></div>
     </div>
@@ -1260,29 +1274,11 @@ function renderFaturamento(){
   const fatVals  = allNegs.map(n => fatByNeg[n]  || 0);
   const parcVals = allNegs.map(n => parcByNeg[n] || 0);
 
-  // Chart 1 — Faturamento vs Parcela por Negócio
-  dch('cf1');
-  CH['cf1'] = new Chart(document.getElementById('cf1'), {
-    type: 'bar',
-    data: {
-      labels: allNegs,
-      datasets: [
-        { label: 'Faturamento',  data: fatVals,  backgroundColor: '#2EA86B', borderRadius: 4, borderSkipped: false },
-        { label: 'Parcela Mensal', data: parcVals, backgroundColor: '#E8511A', borderRadius: 4, borderSkipped: false },
-      ]
-    },
-    options: {
-      ...CO,
-      plugins: {
-        legend: { position:'top', labels:{ font:{size:11}, boxWidth:10 } },
-        tooltip: { callbacks:{ label: c => c.dataset.label + ': ' + fBRL(c.raw) } }
-      },
-      scales: {
-        x: { ticks:{ font:{size:10}, maxRotation:35 }, grid:{ display:false } },
-        y: { ticks:{ callback: fAX, font:{size:10} }, grid: GRD }
-      }
-    }
-  });
+  // Chart 1 — Faturamento vs Parcela por Negócio (modo dinâmico)
+  // Guarda os dados no escopo para o toggle poder recriar sem re-fetch
+  window._cf1Data = { allNegs, fatVals, parcVals };
+  window._cf1Mode = window._cf1Mode || 'bar'; // preserva modo ao sincronizar
+  buildCf1(window._cf1Mode);
 
   // Chart 2 — Evolução Mensal Faturamento
   const fatByMonth = {};
@@ -1347,6 +1343,69 @@ function renderFaturamento(){
   ).join('');
 }
 
+
+// ── CF1 TOGGLE ────────────────────────────
+function setCf1Mode(mode, btn){
+  window._cf1Mode = mode;
+  // Update button styles
+  document.querySelectorAll('#cf1-toggle .ct-btn').forEach(b => b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  buildCf1(mode);
+}
+
+function buildCf1(mode){
+  if(!window._cf1Data) return;
+  const { allNegs, fatVals, parcVals } = window._cf1Data;
+
+  // Cores base
+  const colFat  = '#2EA86B';
+  const colParc = '#E8511A';
+
+  let datasets;
+
+  if(mode === 'bar'){
+    // Ambos em barras agrupadas
+    datasets = [
+      { type:'bar',  label:'Faturamento',   data:fatVals,  backgroundColor:colFat,  borderRadius:4, borderSkipped:false },
+      { type:'bar',  label:'Parcela Mensal', data:parcVals, backgroundColor:colParc, borderRadius:4, borderSkipped:false },
+    ];
+  } else if(mode === 'line'){
+    // Ambos em linhas
+    datasets = [
+      { type:'line', label:'Faturamento',   data:fatVals,  borderColor:colFat,  backgroundColor:colFat+'22',  fill:true, tension:.35, pointRadius:4, pointHoverRadius:6, borderWidth:2.5 },
+      { type:'line', label:'Parcela Mensal', data:parcVals, borderColor:colParc, backgroundColor:colParc+'22', fill:true, tension:.35, pointRadius:4, pointHoverRadius:6, borderWidth:2.5 },
+    ];
+  } else if(mode === 'mixed'){
+    // Faturamento em linha, Parcela em barra
+    datasets = [
+      { type:'bar',  label:'Parcela Mensal', data:parcVals, backgroundColor:colParc, borderRadius:4, borderSkipped:false, order:2 },
+      { type:'line', label:'Faturamento',   data:fatVals,  borderColor:colFat, backgroundColor:colFat+'33', fill:false, tension:.35, pointRadius:5, pointHoverRadius:7, borderWidth:2.5, order:1 },
+    ];
+  } else if(mode === 'mixed2'){
+    // Faturamento em barra, Parcela em linha
+    datasets = [
+      { type:'bar',  label:'Faturamento',   data:fatVals,  backgroundColor:colFat,  borderRadius:4, borderSkipped:false, order:2 },
+      { type:'line', label:'Parcela Mensal', data:parcVals, borderColor:colParc, backgroundColor:colParc+'33', fill:false, tension:.35, pointRadius:5, pointHoverRadius:7, borderWidth:2.5, order:1 },
+    ];
+  }
+
+  dch('cf1');
+  CH['cf1'] = new Chart(document.getElementById('cf1'), {
+    type: 'bar', // tipo base — datasets sobrescrevem individualmente
+    data: { labels: allNegs, datasets },
+    options: {
+      ...CO,
+      plugins: {
+        legend: { position:'top', labels:{ font:{size:11}, boxWidth:10 } },
+        tooltip: { callbacks:{ label: ctx => ctx.dataset.label + ': ' + fBRL(ctx.raw) } }
+      },
+      scales: {
+        x: { ticks:{ font:{size:10}, maxRotation:35 }, grid:{ display:false } },
+        y: { ticks:{ callback: fAX, font:{size:10} }, grid: GRD }
+      }
+    }
+  });
+}
 </script>
 </body>
 </html>
